@@ -14,6 +14,7 @@ import { useAuth } from '../../features/auth/AuthProvider';
 export default function ProspectLayout() {
   const { user, loading } = useAuth();
   const pathname = usePathname();
+  const gettingStartedOpen = pathname === '/prospect/getting-started';
 
   if (loading) {
     return (
@@ -37,12 +38,12 @@ export default function ProspectLayout() {
         <AppHeader
           title={getProspectHeaderTitle(pathname)}
           links={prospectQuickLinks}
-          alertHref="/prospect/inbox"
+          messagesHref="/prospect/messages"
         />
         <View className="flex-1">
           <Stack screenOptions={{ headerShown: false }} />
         </View>
-        <BottomNav items={prospectNavItems} />
+        {gettingStartedOpen ? null : <BottomNav items={prospectNavItems} />}
       </View>
     </SafeAreaView>
   );

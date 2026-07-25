@@ -25,10 +25,8 @@ export default function ManagerResourcesScreen() {
     <AppScreen
       title="Support Resources"
       quickLinks={managerQuickLinks}
-      alertHref="/manager/messages"
     >
       <PageHero
-        icon={BookOpen}
         title="Shared Resources"
         subtitle="Classes, resources, and benefits for prospect support."
       />

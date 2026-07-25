@@ -23,7 +23,6 @@ export default function ManagerAccountScreen() {
     <AppScreen
       title="Account"
       quickLinks={managerQuickLinks}
-      alertHref="/manager/messages"
     >
       {account.loading ? <LoadingState label="Loading account" /> : null}
       {account.error ? (

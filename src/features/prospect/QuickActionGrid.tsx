@@ -16,7 +16,7 @@ type QuickActionGridProps = {
 
 export function QuickActionGrid({ actions }: QuickActionGridProps) {
   return (
-    <View className="flex-row justify-between gap-3">
+    <View className="flex-row justify-between gap-3 py-4">
       {actions.map((action) => {
         const Icon = action.icon;
         return (

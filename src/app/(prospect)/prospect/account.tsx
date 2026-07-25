@@ -1,10 +1,8 @@
-import { BookOpen, LogOut, MessageCircle } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { Pressable, Text } from 'react-native';
 import { AppScreen } from '../../../components/layout/AppScreen';
 import { prospectQuickLinks } from '../../../components/layout/navigation';
 import { AnimatedCard } from '../../../components/ui/AnimatedCard';
-import { SecondaryButton } from '../../../components/ui/SecondaryButton';
-import { RelatedLinks } from '../../../components/ui/RelatedLinks';
 import { ErrorState, LoadingState } from '../../../components/ui/StateViews';
 import { AccountForm } from '../../../features/account/AccountForm';
 import { useAuth } from '../../../features/auth/AuthProvider';
@@ -24,7 +22,6 @@ export default function ProspectAccountScreen() {
     <AppScreen
       title="Profile"
       quickLinks={prospectQuickLinks}
-      alertHref="/prospect/inbox"
     >
       {account.loading ? <LoadingState label="Loading account" /> : null}
       {account.error ? (
@@ -41,29 +38,17 @@ export default function ProspectAccountScreen() {
           />
         </AnimatedCard>
       ) : null}
-      <AnimatedCard index={1}>
-        <RelatedLinks
-          title="Help & Resources"
-          links={[
-            {
-              title: 'Dealer Resources',
-              description: 'Open LG catalogs, registration guides, and dealer apps.',
-              href: '/prospect/resources',
-              icon: BookOpen,
-              tone: 'red',
-            },
-            {
-              title: 'Message Your Sales Manager',
-              description: 'Continue a conversation with your assigned Hercules contact.',
-              href: '/prospect/messages',
-              icon: MessageCircle,
-              tone: 'blue',
-            },
-          ]}
-        />
-      </AnimatedCard>
-      <AnimatedCard index={2}>
-        <SecondaryButton label="Sign Out" icon={LogOut} onPress={signOut} />
+      <AnimatedCard index={1} className="items-center py-2">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Sign out"
+          onPress={() => void signOut()}
+          className="py-2 active:opacity-70"
+        >
+          <Text className="text-sm font-extrabold text-hercules-red">
+            Sign Out
+          </Text>
+        </Pressable>
       </AnimatedCard>
     </AppScreen>
   );

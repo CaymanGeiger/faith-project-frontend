@@ -1,5 +1,11 @@
-import { useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  LayoutChangeEvent,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import Animated, {
   Easing,
   Extrapolation,
@@ -26,8 +32,8 @@ type QuickLinksMenuProps = {
 };
 
 const menuWidth = 256;
-const rowHeight = 60;
-const rowGap = 4;
+const rowHeight = 56;
+const rowGap = 3;
 const panelPadding = 8;
 
 export function QuickLinksMenu({
@@ -37,8 +43,15 @@ export function QuickLinksMenu({
   onSelect,
 }: QuickLinksMenuProps) {
   const progress = useSharedValue(0);
-  const panelHeight =
-    links.length * rowHeight + Math.max(links.length - 1, 0) * rowGap + panelPadding * 2;
+  const [panelHeight, setPanelHeight] = useState(0);
+
+  const measureLastItem = (event: LayoutChangeEvent) => {
+    const { height, y } = event.nativeEvent.layout;
+    const measuredHeight = y + height + panelPadding;
+    setPanelHeight((height) =>
+      Math.abs(height - measuredHeight) > 0.5 ? measuredHeight : height,
+    );
+  };
 
   useEffect(() => {
     progress.value = withTiming(open ? 1 : 0, {
@@ -66,6 +79,7 @@ export function QuickLinksMenu({
             link={link}
             progress={progress}
             onSelect={onSelect}
+            onLayout={index === links.length - 1 ? measureLastItem : undefined}
           />
         ))}
       </View>
@@ -78,6 +92,7 @@ type QuickLinksMenuItemProps = {
   link: QuickLink;
   progress: SharedValue<number>;
   onSelect: (href: string) => void;
+  onLayout?: (event: LayoutChangeEvent) => void;
 };
 
 function QuickLinksMenuItem({
@@ -85,6 +100,7 @@ function QuickLinksMenuItem({
   link,
   progress,
   onSelect,
+  onLayout,
 }: QuickLinksMenuItemProps) {
   const Icon = link.icon;
 
@@ -111,10 +127,13 @@ function QuickLinksMenuItem({
   });
 
   return (
-    <Animated.View style={itemStyle}>
+    <Animated.View
+      style={[itemStyle, styles.menuItem]}
+      onLayout={onLayout}
+    >
       <Pressable
         onPress={() => onSelect(link.href)}
-        className="h-[60px] flex-row items-center gap-3 rounded-[14px] px-3 active:opacity-70"
+        className="h-full flex-row items-center gap-3 rounded-[14px] px-3 active:opacity-70"
       >
         <View className="h-9 w-9 items-center justify-center rounded-full bg-hercules-red">
           <Icon size={18} color={colors.white} />
@@ -143,5 +162,8 @@ const styles = StyleSheet.create({
   panelContent: {
     gap: rowGap,
     padding: panelPadding,
+  },
+  menuItem: {
+    height: rowHeight,
   },
 });

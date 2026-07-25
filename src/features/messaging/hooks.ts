@@ -73,6 +73,11 @@ export function useConversationMessages(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    setMessages([]);
+    setError(null);
+  }, [conversationId]);
+
   const load = useCallback(async () => {
     if (!conversationId) return;
     setLoading(true);

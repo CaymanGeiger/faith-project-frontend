@@ -35,10 +35,8 @@ export default function ProspectClassesScreen() {
     <AppScreen
       title="Classes"
       quickLinks={prospectQuickLinks}
-      alertHref="/prospect/inbox"
     >
       <PageHero
-        icon={CalendarDays}
         title="Certification Classes"
         subtitle="Virtual training and certification sessions."
       />

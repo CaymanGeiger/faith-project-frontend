@@ -16,13 +16,11 @@ export default function ProspectResourcesScreen() {
 
   return (
     <AppScreen
-      title="Resources"
+      title="Technical Support"
       quickLinks={prospectQuickLinks}
-      alertHref="/prospect/inbox"
     >
       <PageHero
-        icon={BookOpen}
-        title="Dealer Resources"
+        title="Technical Support"
         subtitle="Catalogs, registration guides, and dealer apps."
       />
 
@@ -51,7 +49,7 @@ export default function ProspectResourcesScreen() {
 
       <AnimatedCard index={2}>
         <RelatedLinks
-          title="More Dealer Support"
+          title="More Support"
           links={[
             {
               title: 'Dealer Benefits',

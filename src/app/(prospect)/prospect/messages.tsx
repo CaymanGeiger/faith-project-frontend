@@ -20,13 +20,10 @@ export default function ProspectMessagesScreen() {
     <AppScreen
       title="Messages"
       quickLinks={prospectQuickLinks}
-      alertHref="/prospect/inbox"
     >
       <PageHero
-        icon={MessageCircle}
         title="Sales Manager Messages"
         subtitle="Connect with your assigned Hercules contact."
-        tone="blue"
       />
 
       {conversations.loading ? <LoadingState label="Loading conversations" /> : null}

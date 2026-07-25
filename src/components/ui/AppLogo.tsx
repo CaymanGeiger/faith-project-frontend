@@ -3,7 +3,7 @@ import { brandAssets } from '../../lib/theme/assets';
 
 type AppLogoProps = {
   compact?: boolean;
-  size?: 'compact' | 'standard' | 'home' | 'header';
+  size?: 'compact' | 'standard' | 'auth' | 'home' | 'header';
 };
 
 export function AppLogo({ compact = false, size }: AppLogoProps) {
@@ -11,6 +11,8 @@ export function AppLogo({ compact = false, size }: AppLogoProps) {
   const className =
     logoSize === 'home'
       ? 'h-24 w-[320px]'
+      : logoSize === 'auth'
+        ? 'h-[90px] w-[314px]'
       : logoSize === 'header'
         ? 'h-8 w-8'
       : logoSize === 'compact'

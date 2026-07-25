@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text } from 'react-native';
 import { LucideIcon } from 'lucide-react-native';
 import { colors } from '../../lib/theme/theme';
 

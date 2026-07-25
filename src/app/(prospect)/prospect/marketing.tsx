@@ -27,10 +27,8 @@ export default function ProspectMarketingScreen() {
     <AppScreen
       title="Marketing"
       quickLinks={prospectQuickLinks}
-      alertHref="/prospect/inbox"
     >
       <PageHero
-        icon={Award}
         title="Marketing Consultation"
         subtitle="Complete the required onboarding consultation."
       />

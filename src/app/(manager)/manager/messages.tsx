@@ -20,13 +20,10 @@ export default function ManagerMessagesScreen() {
     <AppScreen
       title="Messages"
       quickLinks={managerQuickLinks}
-      alertHref="/manager/messages"
     >
       <PageHero
-        icon={MessageCircle}
         title="Prospect Messages"
         subtitle="Conversations with your assigned prospects."
-        tone="blue"
       />
 
       {conversations.loading ? <LoadingState label="Loading conversations" /> : null}

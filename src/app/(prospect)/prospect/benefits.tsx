@@ -47,7 +47,7 @@ export default function ProspectBenefitsScreen() {
       description: 'Register products quickly and easily for extended protection.',
       icon: ShieldCheck,
       tone: 'blue',
-      onPress: () => router.push('/prospect/inbox'),
+      onPress: () => router.push('/prospect/getting-started'),
     },
     {
       title: 'Warranty Support',
@@ -64,7 +64,7 @@ export default function ProspectBenefitsScreen() {
       onPress: () => router.push('/prospect/marketing'),
     },
     {
-      title: 'Dealer Resources',
+      title: 'Technical Support',
       description: 'Access sales tools, manuals, and brand assets anytime.',
       icon: Folder,
       tone: 'blue',
@@ -76,7 +76,6 @@ export default function ProspectBenefitsScreen() {
     <AppScreen
       title="Benefits"
       quickLinks={prospectQuickLinks}
-      alertHref="/prospect/inbox"
       contentContainerClassName="gap-4 px-5 pb-28 pt-4"
     >
       <AnimatedCard className="rounded-[24px] border border-hercules-blue/20 bg-hercules-white p-5">

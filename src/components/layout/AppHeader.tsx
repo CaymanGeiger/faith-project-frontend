@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import { router, usePathname } from 'expo-router';
 import { Bell } from 'lucide-react-native';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { AppLogo } from '../ui/AppLogo';
 import { IconButton } from '../ui/IconButton';
 import { colors } from '../../lib/theme/theme';
@@ -13,14 +13,15 @@ import { QuickLink, QuickLinksMenu } from './QuickLinksMenu';
 type AppHeaderProps = {
   title: string;
   links: QuickLink[];
-  alertHref: string;
+  messagesHref: '/prospect/messages' | '/manager/messages';
 };
 
-export function AppHeader({ title, links, alertHref }: AppHeaderProps) {
+export function AppHeader({ title, links, messagesHref }: AppHeaderProps) {
   const [quickLinksOpen, setQuickLinksOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [headerHeight, setHeaderHeight] = useState(0);
   const pathname = usePathname();
+  const showingHomeLogo = title === 'LG Dealer Portal';
 
   const openLink = (href: string) => {
     setQuickLinksOpen(false);
@@ -28,7 +29,7 @@ export function AppHeader({ title, links, alertHref }: AppHeaderProps) {
     router.push(href);
   };
 
-  const toggleAlerts = () => {
+  const toggleNotifications = () => {
     setQuickLinksOpen(false);
     setNotificationsOpen((value) => !value);
   };
@@ -56,17 +57,20 @@ export function AppHeader({ title, links, alertHref }: AppHeaderProps) {
           }}
         />
         <View className="flex-1 items-center justify-center" style={styles.centerSlot}>
-          <Animated.View
-            key={title}
-            entering={FadeIn.duration(150)}
-            exiting={FadeOut.duration(110)}
-            style={styles.centerContent}
+          <View
+            pointerEvents="none"
+            style={[styles.centerContent, { opacity: showingHomeLogo ? 1 : 0 }]}
           >
-            {title === 'LG Dealer Portal' ? (
-              <View style={styles.logoMarkBacking}>
-                <AppLogo size="header" />
-              </View>
-            ) : (
+            <View style={styles.logoMarkBacking}>
+              <AppLogo size="header" />
+            </View>
+          </View>
+          {!showingHomeLogo ? (
+            <Animated.View
+              key={title}
+              entering={FadeIn.duration(150)}
+              style={styles.centerContent}
+            >
               <Text
                 numberOfLines={1}
                 adjustsFontSizeToFit
@@ -74,13 +78,13 @@ export function AppHeader({ title, links, alertHref }: AppHeaderProps) {
               >
                 {title}
               </Text>
-            )}
-          </Animated.View>
+            </Animated.View>
+          ) : null}
         </View>
         <IconButton
           icon={Bell}
-          label="Alerts"
-          onPress={toggleAlerts}
+          label="Notifications"
+          onPress={toggleNotifications}
           tone="red"
         />
       </View>
@@ -93,7 +97,7 @@ export function AppHeader({ title, links, alertHref }: AppHeaderProps) {
       <NotificationsMenu
         open={notificationsOpen}
         topOffset={headerHeight}
-        fallbackHref={alertHref}
+        messagesHref={messagesHref}
         onClose={() => setNotificationsOpen(false)}
       />
     </View>

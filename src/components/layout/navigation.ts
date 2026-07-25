@@ -1,13 +1,13 @@
 import {
   Award,
+  BadgeDollarSign,
   BookOpen,
   BriefcaseBusiness,
   CalendarDays,
-  CheckSquare,
   Gift,
   Home,
-  Inbox,
   LifeBuoy,
+  ListChecks,
   MessageCircle,
   PackageCheck,
   User,
@@ -18,17 +18,17 @@ import { QuickLink } from './QuickLinksMenu';
 
 export const prospectNavItems: NavItem[] = [
   { label: 'Home', href: '/prospect', icon: Home },
-  { label: 'Inbox', href: '/prospect/inbox', icon: Inbox },
+  { label: 'Support', href: '/prospect/resources', icon: BookOpen },
   { label: 'Classes', href: '/prospect/classes', icon: CalendarDays },
   { label: 'Profile', href: '/prospect/account', icon: User },
 ];
 
 export const prospectQuickLinks: QuickLink[] = [
-  { label: 'Inbox', href: '/prospect/inbox', icon: Inbox },
-  { label: 'Classes', href: '/prospect/classes', icon: CalendarDays },
-  { label: 'Resources', href: '/prospect/resources', icon: BookOpen },
-  { label: 'To-Do', href: '/prospect/todos', icon: CheckSquare },
+  { label: 'Getting Started', href: '/prospect/getting-started', icon: ListChecks },
   { label: 'Benefits', href: '/prospect/benefits', icon: Gift },
+  { label: 'Rebates', href: '/prospect/rebates', icon: BadgeDollarSign },
+  { label: 'Classes', href: '/prospect/classes', icon: CalendarDays },
+  { label: 'Technical Support', href: '/prospect/resources', icon: BookOpen },
   { label: 'Marketing Consultation', href: '/prospect/marketing', icon: Award },
   { label: 'Messages', href: '/prospect/messages', icon: MessageCircle },
   { label: 'Account', href: '/prospect/account', icon: User },
@@ -59,11 +59,11 @@ const prospectHeaderTitles: Record<string, string> = {
   '/prospect/account': 'Profile',
   '/prospect/benefits': 'Benefits',
   '/prospect/classes': 'Classes',
-  '/prospect/inbox': 'Inbox',
+  '/prospect/getting-started': 'Getting Started',
   '/prospect/marketing': 'Marketing',
   '/prospect/messages': 'Messages',
-  '/prospect/resources': 'Resources',
-  '/prospect/todos': 'To-Do',
+  '/prospect/rebates': 'Rebates',
+  '/prospect/resources': 'Technical Support',
 };
 
 const managerHeaderTitles: Record<string, string> = {

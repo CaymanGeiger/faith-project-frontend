@@ -50,10 +50,8 @@ export default function ManagerProspectsScreen() {
     <AppScreen
       title="Assigned Prospects"
       quickLinks={managerQuickLinks}
-      alertHref="/manager/messages"
     >
       <PageHero
-        icon={BriefcaseBusiness}
         title="Lead Tracking"
         subtitle="Status and notes for assigned prospects."
       />

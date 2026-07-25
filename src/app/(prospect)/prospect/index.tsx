@@ -1,22 +1,12 @@
 import { router } from 'expo-router';
-import {
-  Award,
-  BookOpen,
-  CalendarDays,
-  CheckSquare,
-  Gift,
-  LifeBuoy,
-  PackagePlus,
-} from 'lucide-react-native';
+import { BookOpen, CalendarDays, Gift, LifeBuoy } from 'lucide-react-native';
 import { Text, View } from 'react-native';
 import { AppScreen } from '../../../components/layout/AppScreen';
 import { prospectQuickLinks } from '../../../components/layout/navigation';
 import { AnimatedCard } from '../../../components/ui/AnimatedCard';
 import { Badge } from '../../../components/ui/Badge';
-import { ListItem } from '../../../components/ui/ListItem';
-import { RelatedLinks } from '../../../components/ui/RelatedLinks';
-import { SectionHeader } from '../../../components/ui/SectionHeader';
 import { ErrorState, LoadingState } from '../../../components/ui/StateViews';
+import { GettingStartedCard } from '../../../features/getting-started/GettingStartedCard';
 import { ProspectProfileCard } from '../../../features/prospect/ProspectProfileCard';
 import { QuickActionGrid } from '../../../features/prospect/QuickActionGrid';
 import { accountApi, classesApi, todosApi } from '../../../lib/api/endpoints';
@@ -38,7 +28,7 @@ export default function ProspectHomeScreen() {
     <AppScreen
       title="LG Dealer Portal"
       quickLinks={prospectQuickLinks}
-      alertHref="/prospect/inbox"
+      contentContainerClassName="gap-4 px-[23px] pb-28 pt-4"
     >
       {dashboard.loading ? <LoadingState label="Loading portal" /> : null}
       {dashboard.error ? (
@@ -56,8 +46,8 @@ export default function ProspectHomeScreen() {
           <AnimatedCard index={2}>
             <QuickActionGrid
               actions={[
-                { label: 'Register', href: '/prospect/inbox', icon: PackagePlus, tone: 'red' },
-                { label: 'Resources', href: '/prospect/resources', icon: BookOpen, tone: 'blue' },
+                { label: 'Tech Support', href: '/prospect/resources', icon: BookOpen, tone: 'red' },
+                { label: 'Benefits', href: '/prospect/benefits', icon: Gift, tone: 'blue' },
                 { label: 'Classes', href: '/prospect/classes', icon: CalendarDays, tone: 'red' },
                 { label: 'Support', href: '/prospect/messages', icon: LifeBuoy, tone: 'blue' },
               ]}
@@ -65,56 +55,14 @@ export default function ProspectHomeScreen() {
           </AnimatedCard>
 
           <AnimatedCard index={3}>
-            <RelatedLinks
-              title="Your Dealer Journey"
-              links={[
-                {
-                  title: 'To-Do',
-                  description: 'See your required onboarding actions and deadlines.',
-                  href: '/prospect/todos',
-                  icon: CheckSquare,
-                  tone: 'red',
-                },
-                {
-                  title: 'Dealer Benefits',
-                  description: 'Explore discounts, warranty support, and dealer programs.',
-                  href: '/prospect/benefits',
-                  icon: Gift,
-                  tone: 'blue',
-                },
-                {
-                  title: 'Marketing Consultation',
-                  description: 'Schedule the consultation required for your onboarding.',
-                  href: '/prospect/marketing',
-                  icon: Award,
-                  tone: 'blue',
-                },
-              ]}
+            <GettingStartedCard
+              completed={gettingStartedCompletionCount(dashboard.data)}
+              total={5}
+              onPress={() => router.push('/prospect/getting-started')}
             />
           </AnimatedCard>
 
-          <AnimatedCard index={4}>
-            <SectionHeader
-              title="Inbox"
-              actionLabel="See All"
-              onAction={() => router.push('/prospect/inbox')}
-            />
-            <View className="gap-3">
-              {dashboard.data.todos.todos.slice(0, 3).map((todo, index) => (
-                <ListItem
-                  key={todo.id}
-                  title={todo.title}
-                  subtitle={todo.description}
-                  meta={todo.status === 'OPEN' ? 'New' : 'Done'}
-                  icon={index === 1 ? PackagePlus : CalendarDays}
-                  iconTone={index === 1 ? 'blue' : 'red'}
-                  onPress={() => router.push('/prospect/todos')}
-                />
-              ))}
-            </View>
-          </AnimatedCard>
-
-          <AnimatedCard index={5} className="flex-row gap-4">
+          <AnimatedCard index={4} className="flex-row gap-4">
             <View className="flex-1 gap-2 rounded-[20px] border border-hercules-blue/20 bg-hercules-white p-4">
               <Text className="text-sm font-bold text-hercules-muted">
                 Upcoming Classes
@@ -147,4 +95,35 @@ export default function ProspectHomeScreen() {
       ) : null}
     </AppScreen>
   );
+}
+
+type DashboardData = {
+  me: Awaited<ReturnType<typeof accountApi.me>>;
+  onboarding: Awaited<ReturnType<typeof accountApi.onboarding>>;
+  todos: Awaited<ReturnType<typeof todosApi.list>>;
+  classes: Awaited<ReturnType<typeof classesApi.list>>;
+};
+
+function gettingStartedCompletionCount(data: DashboardData) {
+  const profile = data.me.user.prospectProfile;
+  const summary = data.onboarding.summary;
+  const profileComplete = Boolean(
+    data.me.user.email &&
+      data.me.user.firstName &&
+      data.me.user.lastName &&
+      data.me.user.phone &&
+      profile?.companyName,
+  );
+  const warrantyComplete = data.todos.todos.some(
+    (todo) =>
+      todo.type === 'JB_WARRANTIES' && todo.status === 'COMPLETED',
+  );
+
+  return [
+    profileComplete,
+    Number(summary.equipmentRegistrations ?? 0) > 0,
+    Number(summary.classEnrollments ?? 0) > 0,
+    warrantyComplete,
+    summary.marketingConsultationStatus !== 'NOT_SUBMITTED',
+  ].filter(Boolean).length;
 }

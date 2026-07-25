@@ -37,7 +37,7 @@ export default function ManagerLayout() {
         <AppHeader
           title={getManagerHeaderTitle(pathname)}
           links={managerQuickLinks}
-          alertHref="/manager/messages"
+          messagesHref="/manager/messages"
         />
         <View className="flex-1">
           <Stack screenOptions={{ headerShown: false }} />

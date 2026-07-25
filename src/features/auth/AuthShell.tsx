@@ -22,7 +22,7 @@ export function AuthShell({ title, subtitle, children }: AuthShellProps) {
           contentContainerClassName="flex-grow justify-center gap-6 bg-hercules-white px-5 py-8"
         >
           <View className="items-center gap-3">
-            <AppLogo />
+            <AppLogo size="auth" />
             <Text className="text-center text-3xl font-extrabold text-hercules-ink">
               {title}
             </Text>

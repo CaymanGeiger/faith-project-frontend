@@ -7,6 +7,7 @@ import { MessageComposer } from './MessageComposer';
 import { TypingIndicator } from './TypingIndicator';
 
 type MessageThreadProps = {
+  conversationId: string | null;
   messages: Message[];
   currentUser: User;
   loading?: boolean;
@@ -18,6 +19,7 @@ type MessageThreadProps = {
 };
 
 export function MessageThread({
+  conversationId,
   messages,
   currentUser,
   loading,
@@ -28,12 +30,24 @@ export function MessageThread({
   onTypingStop,
 }: MessageThreadProps) {
   const scrollRef = useRef<ScrollView>(null);
+  const hasPositionedInitialMessages = useRef(false);
 
   useEffect(() => {
+    hasPositionedInitialMessages.current = false;
+  }, [conversationId]);
+
+  useEffect(() => {
+    if (messages.length === 0) {
+      return;
+    }
+
     requestAnimationFrame(() => {
-      scrollRef.current?.scrollToEnd({ animated: true });
+      scrollRef.current?.scrollToEnd({
+        animated: hasPositionedInitialMessages.current,
+      });
+      hasPositionedInitialMessages.current = true;
     });
-  }, [messages.length]);
+  }, [messages.length, conversationId]);
 
   return (
     <View className="h-[560px] gap-3">

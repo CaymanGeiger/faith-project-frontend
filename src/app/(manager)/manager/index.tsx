@@ -22,7 +22,6 @@ export default function ManagerHomeScreen() {
     <AppScreen
       title="Hercules Internal"
       quickLinks={managerQuickLinks}
-      alertHref="/manager/messages"
     >
       <AnimatedCard className="gap-4 rounded-[24px] bg-hercules-red p-5">
         <View className="flex-row items-center justify-between gap-4">

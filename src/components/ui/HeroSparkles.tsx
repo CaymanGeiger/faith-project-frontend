@@ -20,7 +20,7 @@ export function HeroSparkles({ emphasis = 'red' }: HeroSparklesProps) {
 
 const styles = StyleSheet.create({
   layer: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
   },
   left: {
     position: 'absolute',

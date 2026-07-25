@@ -1,4 +1,4 @@
-import { PropsWithChildren, useEffect, useState } from 'react';
+import { PropsWithChildren, useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
@@ -15,16 +15,28 @@ type ModalSheetProps = PropsWithChildren<{
   visible: boolean;
   title: string;
   onClose: () => void;
+  onDismissed?: () => void;
 }>;
 
 export function ModalSheet({
   visible,
   title,
   onClose,
+  onDismissed,
   children,
 }: ModalSheetProps) {
   const [mounted, setMounted] = useState(visible);
   const progress = useSharedValue(visible ? 1 : 0);
+  const displayedTitle = useRef(title);
+
+  if (visible) {
+    displayedTitle.current = title;
+  }
+
+  const finishClosing = useCallback(() => {
+    setMounted(false);
+    onDismissed?.();
+  }, [onDismissed]);
 
   useEffect(() => {
     if (visible) {
@@ -45,11 +57,11 @@ export function ModalSheet({
       },
       (finished) => {
         if (finished) {
-          runOnJS(setMounted)(false);
+          runOnJS(finishClosing)();
         }
       },
     );
-  }, [progress, visible]);
+  }, [finishClosing, progress, visible]);
 
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0, 1], [0, 1]),
@@ -59,7 +71,7 @@ export function ModalSheet({
     opacity: interpolate(progress.value, [0, 0.2, 1], [0, 1, 1]),
     transform: [
       {
-        translateY: interpolate(progress.value, [0, 1], [42, 0]),
+        translateY: interpolate(progress.value, [0, 1], [104, 0]),
       },
     ],
   }));
@@ -81,7 +93,9 @@ export function ModalSheet({
           className="max-h-[88%] rounded-t-[28px] bg-hercules-white px-5 pb-8 pt-4"
         >
           <View className="mb-4 flex-row items-center justify-between">
-            <Text className="text-xl font-extrabold text-hercules-ink">{title}</Text>
+            <Text className="text-xl font-extrabold text-hercules-ink">
+              {displayedTitle.current}
+            </Text>
             <Pressable
               accessibilityLabel="Close"
               onPress={onClose}
