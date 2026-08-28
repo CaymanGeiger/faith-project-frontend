@@ -2,14 +2,26 @@
   "expo": {
     "name": "Hercules Honors Rewards",
     "slug": "hercules-honors-rewards",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/hercules-app-icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false
+        }
+      }
     },
     "android": {
+      "allowBackup": false,
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.VIBRATE"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -20,11 +32,38 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "bundler": "metro"
+      "bundler": "metro",
+      "output": "static"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FFFFFF",
+          "image": "./assets/brand/hercules-logo-optimized.png",
+          "imageWidth": 252,
+          "resizeMode": "contain",
+          "dark": {
+            "backgroundColor": "#FFFFFF",
+            "image": "./assets/brand/hercules-logo-optimized.png"
+          }
+        }
+      ]
     ],
-    "scheme": "herculeshonors"
+    "scheme": "herculeshonors",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d41a427b-e738-4eda-9da3-03722c2bbc45"
+      }
+    },
+    "owner": "caymangeigers-team",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/d41a427b-e738-4eda-9da3-03722c2bbc45"
+    }
   }
 }

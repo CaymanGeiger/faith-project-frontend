@@ -12,13 +12,16 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppScreen } from '../../../components/layout/AppScreen';
 import { prospectQuickLinks } from '../../../components/layout/navigation';
 import { AnimatedCard } from '../../../components/ui/AnimatedCard';
 import { PrimaryButton } from '../../../components/ui/PrimaryButton';
-import { SecondaryButton } from '../../../components/ui/SecondaryButton';
-import { ErrorState, LoadingState } from '../../../components/ui/StateViews';
+import { SkeletonReveal } from '../../../components/ui/SkeletonReveal';
+import {
+  SkeletonLine,
+  SkeletonTextField,
+} from '../../../components/ui/SkeletonPrimitives';
+import { ErrorState } from '../../../components/ui/StateViews';
 import { ClassSetupStep } from '../../../features/getting-started/ClassSetupStep';
 import { EquipmentSetupStep } from '../../../features/getting-started/EquipmentSetupStep';
 import {
@@ -45,10 +48,10 @@ import {
   todosApi,
 } from '../../../lib/api/endpoints';
 import { useAsyncData } from '../../../lib/hooks/useAsyncData';
+import { colors } from '../../../lib/theme/theme';
 
 export default function GettingStartedScreen() {
   const { user: authenticatedUser } = useAuth();
-  const insets = useSafeAreaInsets();
   const [currentStep, setCurrentStep] = useState(0);
   const [primaryAction, setPrimaryAction] =
     useState<GettingStartedAction | null>(null);
@@ -61,6 +64,7 @@ export default function GettingStartedScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const initialized = useRef(false);
   const transitionInFlight = useRef(false);
+  const scrollTargetRef = useRef<'top' | 'form' | null>(null);
   const guide = useAsyncData(async () => {
     const [account, classes, equipment, todos, marketing] = await Promise.all([
       accountApi.me(),
@@ -116,8 +120,22 @@ export default function GettingStartedScreen() {
     }
   }, [draftLoaded, guide.data]);
 
+  // Scroll to the form after an intentional Continue, Previous, or Edit
+  // navigation. Initial load should always preserve the top view.
   useEffect(() => {
-    scrollRef.current?.scrollTo({ y: 0, animated: false });
+    const scrollTarget = scrollTargetRef.current;
+    if (!scrollTarget) {
+      return;
+    }
+
+    scrollTargetRef.current = null;
+    const frame = requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({
+        y: scrollTarget === 'form' ? 220 : 0,
+        animated: scrollTarget === 'form',
+      });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [currentStep]);
 
   useEffect(() => {
@@ -145,11 +163,16 @@ export default function GettingStartedScreen() {
     };
   }, []);
 
-  const moveToStep = useCallback((step: number) => {
+  const moveToStep = useCallback((step: number, alignStep = false) => {
     const nextStep = Math.max(
       0,
       Math.min(step, gettingStartedSteps.length - 1),
     );
+    scrollTargetRef.current = alignStep
+      ? nextStep < gettingStartedSteps.length - 1
+        ? 'form'
+        : 'top'
+      : null;
     currentStepRef.current = nextStep;
     setCurrentStep(nextStep);
   }, []);
@@ -166,7 +189,11 @@ export default function GettingStartedScreen() {
     setTransitioning(true);
     try {
       if (currentStepRef.current === fromStep) {
-        moveToStep(fromStep + 1);
+        const nextStep = Math.min(
+          fromStep + 1,
+          gettingStartedSteps.length - 1,
+        );
+        moveToStep(nextStep, true);
       }
       await guide.reload();
     } finally {
@@ -183,27 +210,32 @@ export default function GettingStartedScreen() {
       router.back();
       return;
     }
-    moveToStep(currentStep - 1);
+    moveToStep(currentStep - 1, true);
   }, [currentStep, moveToStep]);
+
+  const returnToStep = useCallback(
+    (step: number) => moveToStep(step, true),
+    [moveToStep],
+  );
 
   const completeProfile = useCallback(
     () => continueToNextStep(0),
     [continueToNextStep],
   );
   const completeEquipment = useCallback(
-    () => continueToNextStep(1),
+    () => continueToNextStep(4),
     [continueToNextStep],
   );
   const completeClass = useCallback(
-    () => continueToNextStep(2),
+    () => continueToNextStep(1),
     [continueToNextStep],
   );
   const completeWarranty = useCallback(
-    () => continueToNextStep(3),
+    () => continueToNextStep(2),
     [continueToNextStep],
   );
   const completeMarketing = useCallback(
-    () => continueToNextStep(4),
+    () => continueToNextStep(3),
     [continueToNextStep],
   );
   const finishGuide = useCallback(async () => {
@@ -239,8 +271,12 @@ export default function GettingStartedScreen() {
     (todo) => todo.type === 'JB_WARRANTIES',
   );
   const enrolledClass = guide.data?.classes.find(
-    (session) => session.isEnrolled,
+    (session) =>
+      session.enrollmentStatus === 'ENROLLED' ||
+      session.enrollmentStatus === 'COMPLETED',
   );
+  const initialLoading = !draftLoaded || (guide.loading && !guide.data);
+  const fatalError = !guide.data ? guide.error : null;
 
   return (
     <AppScreen
@@ -259,15 +295,15 @@ export default function GettingStartedScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {(!draftLoaded || (guide.loading && !guide.data)) ? (
-            <LoadingState label="Preparing your onboarding guide" />
-          ) : null}
-          {guide.error ? (
-            <ErrorState message={guide.error} onRetry={guide.reload} />
-          ) : null}
-
-          {guide.data && draftLoaded ? (
+          {initialLoading ? (
+            <GettingStartedSkeleton
+              step={draft?.currentStep ?? currentStep}
+            />
+          ) : fatalError ? (
+            <ErrorState message={fatalError} onRetry={guide.reload} />
+          ) : guide.data && draftLoaded ? (
             <>
+              <JourneyIntro />
               <GettingStartedProgress
                 currentStep={currentStep}
               />
@@ -283,15 +319,6 @@ export default function GettingStartedScreen() {
                   />
                 ) : null}
                 {currentStep === 1 ? (
-                  <EquipmentSetupStep
-                    equipment={guide.data.equipment}
-                    userId={authenticatedUser?.id ?? guide.data.user.id}
-                    draft={draft}
-                    onComplete={completeEquipment}
-                    onActionChange={updatePrimaryAction}
-                  />
-                ) : null}
-                {currentStep === 2 ? (
                   <ClassSetupStep
                     classes={guide.data.classes}
                     userId={authenticatedUser?.id ?? guide.data.user.id}
@@ -300,14 +327,14 @@ export default function GettingStartedScreen() {
                     onActionChange={updatePrimaryAction}
                   />
                 ) : null}
-                {currentStep === 3 ? (
+                {currentStep === 2 ? (
                   <WarrantySetupStep
                     todo={warrantyTodo}
                     onComplete={completeWarranty}
                     onActionChange={updatePrimaryAction}
                   />
                 ) : null}
-                {currentStep === 4 ? (
+                {currentStep === 3 ? (
                   <MarketingSetupStep
                     consultation={guide.data.consultation}
                     userId={authenticatedUser?.id ?? guide.data.user.id}
@@ -316,51 +343,62 @@ export default function GettingStartedScreen() {
                     onActionChange={updatePrimaryAction}
                   />
                 ) : null}
+                {currentStep === 4 ? (
+                  <EquipmentSetupStep
+                    equipment={guide.data.equipment}
+                    userId={authenticatedUser?.id ?? guide.data.user.id}
+                    draft={draft}
+                    onComplete={completeEquipment}
+                    onActionChange={updatePrimaryAction}
+                  />
+                ) : null}
                 {currentStep === 5 ? (
                   <ReviewSetupStep
                     user={guide.data.user}
                     equipment={guide.data.equipment[0]}
                     classSession={enrolledClass}
-                    warrantyComplete={Boolean(completion[3])}
-                    marketingComplete={Boolean(completion[4])}
-                    onEdit={moveToStep}
+                    warrantyComplete={Boolean(completion[2])}
+                    marketingComplete={Boolean(completion[3])}
+                    onEdit={returnToStep}
                     onFinish={finishGuide}
                     onActionChange={updatePrimaryAction}
                   />
                 ) : null}
               </AnimatedCard>
 
-              {primaryAction ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Save and finish later"
-                  disabled={transitioning || primaryAction.loading || savingForLater}
-                  onPress={() => void saveForLater()}
-                  className="items-center py-2 active:opacity-70 disabled:opacity-50"
-                >
-                  <Text className="text-sm font-extrabold text-hercules-blue">
-                    {savingForLater
-                      ? 'Saving your progress…'
-                      : 'Save & finish later'}
-                  </Text>
-                </Pressable>
-              ) : null}
             </>
-          ) : null}
+          ) : (
+            <GettingStartedSkeleton
+              step={draft?.currentStep ?? currentStep}
+            />
+          )}
         </ScrollView>
 
-        {guide.data && primaryAction ? (
+        {initialLoading ? (
+          <View
+            pointerEvents="none"
+            style={[styles.fixedActionBar, { bottom: 0 }]}
+          >
+            <GettingStartedActionSkeleton />
+          </View>
+        ) : guide.data && primaryAction ? (
           <View
             pointerEvents="box-none"
-            style={[styles.fixedActionBar, { bottom: keyboardInset }]}
+            style={[
+              styles.fixedActionBar,
+              { bottom: keyboardInset },
+            ]}
           >
             <GettingStartedActionBar
               action={primaryAction}
               currentStep={currentStep}
               bottomInset={
-                keyboardInset > 0 ? 10 : Math.max(insets.bottom, 12)
+                keyboardInset > 0 ? 10 : 12
               }
               onBack={goBack}
+              onSaveForLater={() => void saveForLater()}
+              savingForLater={savingForLater}
+              saveForLaterDisabled={transitioning || Boolean(primaryAction.loading)}
             />
           </View>
         ) : null}
@@ -369,11 +407,342 @@ export default function GettingStartedScreen() {
   );
 }
 
+function JourneyIntro() {
+  const phases = [
+    {
+      number: '1',
+      title: 'Set Up Your Dealer Profile',
+      details: ['Complete your business profile'],
+    },
+    {
+      number: '2',
+      title: 'Sign Up for LG Classes',
+      details: ['Complete training and review current program information'],
+    },
+    {
+      number: '3',
+      title: 'Continue Your Setup',
+      details: ['Warranties, marketing, and equipment records'],
+    },
+  ];
+
+  return (
+    <View className="gap-3 rounded-[20px] bg-hercules-blue p-4">
+      <View className="gap-1.5">
+        <Text className="text-xs font-extrabold uppercase tracking-[1px] text-hercules-white/75">
+          Getting Started
+        </Text>
+        <Text className="text-[22px] font-extrabold leading-6 text-hercules-white">
+          Set up your profile. Find resources. Keep growing.
+        </Text>
+        <Text className="text-xs leading-4 text-hercules-white/80">
+          Three milestones to get started with LG.
+        </Text>
+      </View>
+      <View className="gap-2 border-t border-hercules-white/20 pt-3">
+        {phases.map((phase) => (
+          <View key={phase.number} className="flex-row items-center gap-2.5">
+            <View className="h-7 w-7 items-center justify-center rounded-full bg-hercules-red">
+              <Text className="text-xs font-extrabold text-hercules-white">
+                {phase.number}
+              </Text>
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text className="text-[13px] font-extrabold leading-4 text-hercules-white">
+                {phase.title}
+              </Text>
+              {phase.details.map((detail) => (
+                <Text
+                  key={detail}
+                  className="text-[11px] leading-[14px] text-hercules-white/70"
+                >
+                  • {detail}
+                </Text>
+              ))}
+            </View>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function GettingStartedSkeleton({ step }: { step: number }) {
+  return (
+    <SkeletonReveal
+      label="Preparing your Getting Started checklist"
+      className="gap-4"
+    >
+      <GettingStartedIntroSkeleton />
+      <View className="gap-3 border-b border-hercules-blue/15 px-1 pb-5 pt-2">
+        <View className="flex-row items-center justify-between">
+          <SkeletonLine className="h-4 w-1/4" />
+          <SkeletonLine className="h-3 w-1/3" subtle />
+        </View>
+        <SkeletonLine className="h-2.5 w-full" subtle />
+      </View>
+      <GettingStartedStepSkeleton step={step} />
+    </SkeletonReveal>
+  );
+}
+
+function GettingStartedIntroSkeleton() {
+  return (
+    <View className="gap-3 rounded-[20px] bg-hercules-blue/15 p-4">
+      <View className="gap-1.5">
+        <SkeletonLine className="h-3 w-1/2" />
+        <SkeletonLine className="h-5 w-4/5" />
+        <SkeletonLine className="h-5 w-3/5" />
+        <SkeletonLine className="h-3 w-4/5" subtle />
+      </View>
+      <View className="gap-2 border-t border-hercules-blue/10 pt-3">
+        {Array.from({ length: 3 }, (_, index) => (
+          <View
+            key={`journey-intro-phase-skeleton-${index}`}
+            className="flex-row items-center gap-2.5"
+          >
+            <View
+              className={`h-7 w-7 rounded-full ${
+                index === 0
+                  ? 'bg-hercules-red/15'
+                  : 'bg-hercules-blue/15'
+              }`}
+            />
+            <View className="min-w-0 flex-1 gap-1">
+              <SkeletonLine className="h-3 w-2/5" />
+              <View className="gap-1">
+                <SkeletonLine className="h-3 w-3/5" subtle />
+              </View>
+            </View>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function GettingStartedStepSkeleton({ step }: { step: number }) {
+  const normalizedStep = Math.max(
+    0,
+    Math.min(step, gettingStartedSteps.length - 1),
+  );
+  const titleLines = normalizedStep === 3 ? 2 : 1;
+  const descriptionLines = [3, 4, 2, 3, 2, 3][normalizedStep];
+
+  return (
+    <View className="gap-5 rounded-[16px] border border-hercules-blue/15 bg-hercules-white p-5">
+      <View className="flex-row items-start gap-3">
+        <View className="h-10 w-10 rounded-[12px] bg-hercules-red/15" />
+        <View className="min-w-0 flex-1 gap-1">
+          <View>
+            {Array.from({ length: titleLines }, (_, index) => (
+              <View
+                key={`journey-step-title-skeleton-${index}`}
+                className="h-6 justify-center"
+              >
+                <SkeletonLine
+                  className={`h-5 ${index === titleLines - 1 ? 'w-4/5' : 'w-full'}`}
+                />
+              </View>
+            ))}
+          </View>
+          <View>
+            {Array.from({ length: descriptionLines }, (_, index) => (
+              <View
+                key={`journey-step-description-skeleton-${index}`}
+                className="h-5 justify-center"
+              >
+                <SkeletonLine
+                  className={`h-3 ${index === descriptionLines - 1 ? 'w-3/5' : 'w-full'}`}
+                  subtle
+                />
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
+      <GettingStartedStepBodySkeleton step={normalizedStep} />
+    </View>
+  );
+}
+
+function GettingStartedStepBodySkeleton({ step }: { step: number }) {
+  if (step === 1) {
+    return (
+      <View className="gap-3">
+        {Array.from({ length: 2 }, (_, index) => (
+          <View
+            key={`training-choice-skeleton-${index}`}
+            className="flex-row items-start gap-3 rounded-[20px] border border-hercules-blue/20 bg-hercules-white p-4"
+          >
+            <View className="h-6 w-6 rounded-full bg-hercules-blue/15" />
+            <View className="min-w-0 flex-1 gap-1">
+              <View>
+                <View className="h-5 justify-center">
+                  <SkeletonLine className="h-4 w-full" />
+                </View>
+                {index <= 1 ? (
+                  <View className="h-5 justify-center">
+                    <SkeletonLine className="h-4 w-3/5" />
+                  </View>
+                ) : null}
+              </View>
+              <View>
+                <View className="h-5 justify-center">
+                  <SkeletonLine className="h-3 w-full" subtle />
+                </View>
+                <View className="h-5 justify-center">
+                  <SkeletonLine className="h-3 w-4/5" subtle />
+                </View>
+              </View>
+              <View className="h-4 justify-center">
+                <SkeletonLine className="h-3 w-2/5" />
+              </View>
+            </View>
+          </View>
+        ))}
+      </View>
+    );
+  }
+
+  if (step === 2) {
+    return (
+      <View className="gap-3 rounded-[20px] border border-hercules-blue/20 bg-hercules-white p-4">
+        <View className="flex-row items-center gap-3">
+          <View className="h-6 w-6 rounded-full bg-hercules-red/15" />
+          <SkeletonLine className="h-5 flex-1" />
+        </View>
+        <View>
+          <View className="h-5 justify-center">
+            <SkeletonLine className="h-3 w-full" subtle />
+          </View>
+          <View className="h-5 justify-center">
+            <SkeletonLine className="h-3 w-full" subtle />
+          </View>
+          <View className="h-5 justify-center">
+            <SkeletonLine className="h-3 w-full" subtle />
+          </View>
+          <View className="h-5 justify-center">
+            <SkeletonLine className="h-3 w-3/5" subtle />
+          </View>
+        </View>
+        <View className="h-4 justify-center">
+          <SkeletonLine className="h-3 w-1/4" />
+        </View>
+      </View>
+    );
+  }
+
+  if (step === 3) {
+    return (
+      <View className="gap-4">
+        <View className="rounded-[18px] border border-hercules-blue/20 bg-hercules-white p-4">
+          <View className="h-5 justify-center">
+            <SkeletonLine className="h-3 w-full" subtle />
+          </View>
+          <View className="h-5 justify-center">
+            <SkeletonLine className="h-3 w-4/5" subtle />
+          </View>
+        </View>
+        <SkeletonTextField labelWidthClassName="w-[136px]" />
+        <SkeletonTextField labelWidthClassName="w-[138px]" />
+        <SkeletonTextField labelWidthClassName="w-[138px]" />
+      </View>
+    );
+  }
+
+  if (step === 4) {
+    return (
+      <View className="gap-4">
+        <View className="flex-row items-start gap-3 rounded-[20px] border border-hercules-blue/20 bg-hercules-white p-4">
+          <View className="h-6 w-6 rounded-full bg-hercules-blue/15" />
+          <View className="min-w-0 flex-1 gap-1">
+            <View className="h-5 justify-center">
+              <SkeletonLine className="h-5 w-4/5" />
+            </View>
+            <View className="h-5 justify-center">
+              <SkeletonLine className="h-3 w-2/5" />
+            </View>
+            <View className="h-5 justify-center">
+              <SkeletonLine className="h-3 w-4/5" subtle />
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  if (step >= 5) {
+    return (
+      <View className="gap-3">
+        {Array.from({ length: 5 }, (_, index) => (
+          <View
+            key={`journey-review-row-skeleton-${index}`}
+            className="flex-row items-center gap-3 rounded-[18px] border border-hercules-blue/20 bg-hercules-white p-4"
+          >
+            <View
+              className={`h-10 w-10 rounded-full ${
+                index % 2 === 0
+                  ? 'bg-hercules-blue/15'
+                  : 'bg-hercules-red/15'
+              }`}
+            />
+            <View className="min-w-0 flex-1 gap-1">
+              <View className="h-5 justify-center">
+                <SkeletonLine className="h-4 w-2/5" />
+              </View>
+              <View>
+                <View className="h-5 justify-center">
+                  <SkeletonLine className="h-3 w-4/5" subtle />
+                </View>
+                {index === 1 ? (
+                  <View className="h-5 justify-center">
+                    <SkeletonLine className="h-3 w-3/5" subtle />
+                  </View>
+                ) : null}
+              </View>
+            </View>
+            <SkeletonLine className="h-3 w-8" subtle />
+          </View>
+        ))}
+      </View>
+    );
+  }
+
+  return (
+    <View className="gap-4">
+      <SkeletonTextField labelWidthClassName="w-[37px]" />
+      <SkeletonTextField labelWidthClassName="w-[75px]" />
+      <SkeletonTextField labelWidthClassName="w-[73px]" />
+      <SkeletonTextField labelWidthClassName="w-[43px]" />
+      <SkeletonTextField labelWidthClassName="w-[109px]" />
+    </View>
+  );
+}
+
+function GettingStartedActionSkeleton() {
+  return (
+    <SkeletonReveal
+      className="border-t border-hercules-blue/20 bg-hercules-white px-4 pb-3 pt-3"
+      style={styles.actionBar}
+    >
+      <SkeletonLine className="mb-3 h-4 w-1/3 self-center" subtle />
+      <View className="flex-row gap-3">
+        <View className="h-14 w-[36%] rounded-full bg-hercules-blue/15" />
+        <View className="h-14 flex-1 rounded-full bg-hercules-red/15" />
+      </View>
+    </SkeletonReveal>
+  );
+}
+
 type GettingStartedActionBarProps = {
   action: GettingStartedAction;
   currentStep: number;
   bottomInset: number;
   onBack: () => void;
+  onSaveForLater: () => void;
+  savingForLater: boolean;
+  saveForLaterDisabled: boolean;
 };
 
 function GettingStartedActionBar({
@@ -381,20 +750,45 @@ function GettingStartedActionBar({
   currentStep,
   bottomInset,
   onBack,
+  onSaveForLater,
+  savingForLater,
+  saveForLaterDisabled,
 }: GettingStartedActionBarProps) {
   return (
     <View
       className="border-t border-hercules-blue/20 bg-hercules-white px-4 pt-3"
       style={[styles.actionBar, { paddingBottom: bottomInset }]}
     >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Save and finish later"
+        disabled={saveForLaterDisabled || savingForLater}
+        onPress={onSaveForLater}
+        className="items-center pb-3 active:opacity-70 disabled:opacity-50"
+      >
+        <Text className="text-center text-sm font-extrabold text-hercules-blue">
+          {savingForLater ? 'Saving your progress…' : 'Save & finish later'}
+        </Text>
+      </Pressable>
       <View className="flex-row items-center gap-3">
         <View className="w-[36%]">
-          <SecondaryButton
-            label={currentStep === 0 ? 'Back' : 'Previous'}
-            icon={ChevronLeft}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={currentStep === 0 ? 'Back' : 'Previous'}
             onPress={onBack}
             disabled={action.loading}
-          />
+            className="relative min-h-14 items-center justify-center rounded-pill bg-hercules-blue px-5 active:opacity-80 disabled:opacity-50"
+          >
+            <ChevronLeft
+              size={17}
+              color={colors.white}
+              strokeWidth={2.3}
+              style={styles.backIcon}
+            />
+            <Text className="text-center text-base font-bold text-hercules-white">
+              {currentStep === 0 ? 'Back' : 'Previous'}
+            </Text>
+          </Pressable>
         </View>
         <View className="flex-1">
           <PrimaryButton
@@ -421,5 +815,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 10,
+  },
+  backIcon: {
+    position: 'absolute',
+    left: 18,
   },
 });

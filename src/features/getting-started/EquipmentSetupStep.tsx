@@ -60,7 +60,7 @@ export function EquipmentSetupStep({
       await clearGettingStartedDraftFields(userId, 'equipment');
       await onComplete();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Unable to register equipment');
+      setError(caught instanceof Error ? caught.message : 'Unable to save equipment record');
     } finally {
       setSaving(false);
     }
@@ -86,8 +86,8 @@ export function EquipmentSetupStep({
   return (
     <GettingStartedStepCard
       icon={PackagePlus}
-      title="Register Your First LG Unit"
-      description="Add your first equipment record to complete this setup step."
+      title="Add Your First LG System"
+      description="Save an equipment record in this app for your Hercules dealer onboarding."
     >
       {existing ? (
         <View className="gap-4">
@@ -95,13 +95,17 @@ export function EquipmentSetupStep({
             <CheckCircle2 size={25} color={colors.blue} strokeWidth={2.6} />
             <View className="flex-1 gap-1">
               <Text className="text-lg font-extrabold text-hercules-ink">
-                Equipment already registered
+                Equipment record saved
               </Text>
               <Text className="text-sm font-bold text-hercules-blue">
                 {existing.equipmentName}
               </Text>
               <Text className="text-sm leading-5 text-hercules-muted">
                 Model {existing.modelNumber} · Serial {existing.serialNumber}
+              </Text>
+              <Text className="text-sm leading-5 text-hercules-muted">
+                This saves an onboarding record in Hercules Honors Rewards; it
+                does not submit manufacturer registration.
               </Text>
             </View>
           </View>

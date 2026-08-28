@@ -20,22 +20,22 @@ export function GettingStartedCard({
       accessibilityRole="button"
       accessibilityLabel={`${finished ? 'Review' : 'Continue'} Getting Started`}
       onPress={onPress}
-      className="gap-4 rounded-[24px] border border-hercules-blue/20 bg-hercules-white p-5 active:opacity-80"
+      className="gap-4 rounded-[16px] border border-hercules-blue/15 bg-hercules-white p-5 active:opacity-70"
     >
       <View className="flex-row items-center gap-4">
-        <View className="h-12 w-12 items-center justify-center rounded-full bg-hercules-red">
+        <View className="h-11 w-11 items-center justify-center rounded-[13px] bg-hercules-red">
           <ListChecks size={24} color={colors.white} strokeWidth={2.6} />
         </View>
         <View className="flex-1 gap-1">
           <Text className="text-xs font-extrabold uppercase tracking-[1.2px] text-hercules-red">
             {finished ? 'Setup complete' : `${completed} of ${total} complete`}
           </Text>
-          <Text className="text-2xl font-extrabold text-hercules-ink">
+          <Text className="text-xl font-extrabold text-hercules-ink">
             Getting Started
           </Text>
-          <Text className="text-sm font-semibold leading-5 text-hercules-muted">
-            One guided path for your dealer profile, equipment, certification,
-            warranty, and marketing setup.
+          <Text className="text-sm leading-5 text-hercules-muted">
+            Follow your path from training and setup through dealer benefits
+            and ongoing growth.
           </Text>
         </View>
         <ArrowRight size={23} color={colors.blue} strokeWidth={2.6} />

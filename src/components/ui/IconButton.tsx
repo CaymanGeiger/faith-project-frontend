@@ -1,5 +1,5 @@
 import { Pressable } from 'react-native';
-import { LucideIcon } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
 import { colors } from '../../lib/theme/theme';
 
 type IconButtonProps = {
@@ -7,6 +7,7 @@ type IconButtonProps = {
   onPress: () => void;
   label: string;
   tone?: 'red' | 'blue' | 'plain';
+  selected?: boolean;
 };
 
 export function IconButton({
@@ -14,10 +15,13 @@ export function IconButton({
   onPress,
   label,
   tone = 'plain',
+  selected = false,
 }: IconButtonProps) {
   const background =
     tone === 'red'
-      ? 'bg-hercules-red'
+      ? selected
+        ? 'bg-hercules-white/20'
+        : 'bg-hercules-white/10'
       : tone === 'blue'
         ? 'bg-hercules-blue'
         : 'bg-hercules-white';
@@ -26,8 +30,10 @@ export function IconButton({
   return (
     <Pressable
       accessibilityLabel={label}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
       onPress={onPress}
-      className={`h-11 w-11 items-center justify-center rounded-full ${background} active:opacity-80`}
+      className={`h-11 w-11 items-center justify-center rounded-full ${background} active:opacity-75`}
     >
       <Icon size={22} color={iconColor} strokeWidth={2.4} />
     </Pressable>

@@ -2,11 +2,18 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { CalendarDays, MessageCircle } from 'lucide-react-native';
+import Animated, {
+  Easing,
+  FadeInDown,
+  FadeOut,
+  ReduceMotion,
+} from 'react-native-reanimated';
 import { useAuth } from '../../features/auth/AuthProvider';
 import { classesApi, conversationsApi } from '../../lib/api/endpoints';
 import { formatShortDate, fullName } from '../../lib/format';
-import { colors } from '../../lib/theme/theme';
+import { motionDuration } from '../../lib/motion';
 import { ListItem } from '../ui/ListItem';
+import { floatingPanelStyles } from './floatingPanel';
 
 type Notification = {
   id: string;
@@ -22,33 +29,57 @@ type NotificationsMenuProps = {
   open: boolean;
   topOffset: number;
   messagesHref: '/prospect/messages' | '/manager/messages';
+  onLoadingChange: (loading: boolean) => void;
   onClose: () => void;
 };
+
+const spinnerDelayMs = 140;
+const minimumSpinnerDurationMs = 240;
+const notificationRequestTimeoutMs = 10_000;
 
 export function NotificationsMenu({
   open,
   topOffset,
   messagesHref,
+  onLoadingChange,
   onClose,
 }: NotificationsMenuProps) {
   const { user } = useAuth();
   const [items, setItems] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open || !user) {
+      setReady(false);
+      onLoadingChange(false);
       return;
     }
 
     let active = true;
-    setLoading(true);
+    const requestController = new AbortController();
+    const requestTimeout = setTimeout(
+      () => requestController.abort(),
+      notificationRequestTimeoutMs,
+    );
+    let spinnerShownAt: number | null = null;
+    const spinnerTimer = setTimeout(() => {
+      if (!active) {
+        return;
+      }
+      spinnerShownAt = Date.now();
+      onLoadingChange(true);
+    }, spinnerDelayMs);
+
+    setReady(false);
     setError(null);
     void (async () => {
       try {
         const [conversations, classes] = await Promise.all([
-          conversationsApi.list(),
-          user.role === 'PROSPECT' ? classesApi.list() : Promise.resolve(null),
+          conversationsApi.list({ signal: requestController.signal }),
+          user.role === 'PROSPECT'
+            ? classesApi.list({ signal: requestController.signal })
+            : Promise.resolve(null),
         ]);
         if (!active) return;
 
@@ -84,7 +115,9 @@ export function NotificationsMenu({
         const classNotifications = (classes?.classes ?? [])
           .filter(
             (session) =>
-              session.isEnrolled && new Date(session.startsAt).getTime() >= Date.now(),
+              (session.enrollmentStatus === 'ENROLLED' ||
+                session.enrollmentStatus === 'COMPLETED') &&
+              new Date(session.startsAt).getTime() >= Date.now(),
           )
           .sort(
             (a, b) =>
@@ -104,20 +137,42 @@ export function NotificationsMenu({
       } catch (caught) {
         if (active) {
           setError(
-            caught instanceof Error ? caught.message : 'Unable to load notifications',
+            requestController.signal.aborted
+              ? 'Notifications took too long to load. Please try again.'
+              : caught instanceof Error
+                ? caught.message
+                : 'Unable to load notifications',
           );
         }
       } finally {
-        if (active) setLoading(false);
+        clearTimeout(requestTimeout);
+        clearTimeout(spinnerTimer);
+        if (active && spinnerShownAt) {
+          const remainingDuration =
+            minimumSpinnerDurationMs - (Date.now() - spinnerShownAt);
+          if (remainingDuration > 0) {
+            await new Promise((resolve) =>
+              setTimeout(resolve, remainingDuration),
+            );
+          }
+        }
+        if (active) {
+          onLoadingChange(false);
+          setReady(true);
+        }
       }
     })();
 
     return () => {
       active = false;
+      requestController.abort();
+      clearTimeout(requestTimeout);
+      clearTimeout(spinnerTimer);
+      onLoadingChange(false);
     };
-  }, [open, user]);
+  }, [messagesHref, onLoadingChange, open, user]);
 
-  if (!open) {
+  if (!open || !ready) {
     return null;
   }
 
@@ -127,68 +182,82 @@ export function NotificationsMenu({
   };
 
   return (
-    <View style={[styles.panel, { top: topOffset }]}>
-      <View className="flex-row items-center justify-between px-4 py-3">
-        <Text className="text-base font-extrabold text-hercules-ink">
-          Notifications
-        </Text>
-        <Pressable onPress={() => openDestination()} className="py-1 active:opacity-70">
-          <Text className="text-xs font-extrabold text-hercules-blue">
-            View Messages
+    <Animated.View
+      entering={FadeInDown.duration(288)
+        .easing(Easing.out(Easing.cubic))
+        .reduceMotion(ReduceMotion.System)}
+      exiting={FadeOut.duration(220)
+        .easing(Easing.inOut(Easing.cubic))
+        .reduceMotion(ReduceMotion.System)}
+      style={[
+        floatingPanelStyles.shell,
+        styles.panel,
+        { top: topOffset + 12 },
+      ]}
+    >
+      <View style={floatingPanelStyles.surface}>
+        <View className="flex-row items-center justify-between border-b border-hercules-blue/10 px-5 py-3">
+          <Text className="text-base font-extrabold text-hercules-ink">
+            Notifications
           </Text>
-        </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open chat"
+            onPress={() => openDestination()}
+            className="min-h-11 min-w-11 items-center justify-center rounded-[14px] px-3 active:bg-hercules-blue/5 active:opacity-100"
+          >
+            <Text className="text-xs font-extrabold text-hercules-blue">
+              Open Chat
+            </Text>
+          </Pressable>
+        </View>
+        <View className="px-3 pb-3 pt-2">
+          {error ? (
+            <Text className="px-2 py-4 text-center text-sm font-bold text-hercules-red">
+              {error}
+            </Text>
+          ) : items.length === 0 ? (
+            <Text className="px-2 py-4 text-center text-sm font-bold text-hercules-muted">
+              No new messages
+            </Text>
+          ) : (
+            <View style={styles.notificationGroup}>
+              {items.map((item, index) => (
+                <ListItem
+                  key={item.id}
+                  title={item.title}
+                  subtitle={item.subtitle}
+                  meta={item.meta}
+                  icon={item.kind === 'message' ? MessageCircle : CalendarDays}
+                  iconTone={item.unread ? 'red' : 'blue'}
+                  titleNumberOfLines={1}
+                  subtitleNumberOfLines={2}
+                  metaNumberOfLines={2}
+                  variant="row"
+                  isLast={index === items.length - 1}
+                  onPress={() => openDestination(item.href)}
+                />
+              ))}
+            </View>
+          )}
+        </View>
       </View>
-      <View className="gap-2 px-3 pb-3">
-        {loading ? (
-          <Text className="px-2 py-4 text-center text-sm font-bold text-hercules-muted">
-            Loading notifications…
-          </Text>
-        ) : error ? (
-          <Text className="px-2 py-4 text-center text-sm font-bold text-hercules-red">
-            {error}
-          </Text>
-        ) : items.length === 0 ? (
-          <Text className="px-2 py-4 text-center text-sm font-bold text-hercules-muted">
-            No new messages
-          </Text>
-        ) : (
-          items.map((item) => (
-            <ListItem
-              key={item.id}
-              title={item.title}
-              subtitle={item.subtitle}
-              meta={item.meta}
-              icon={item.kind === 'message' ? MessageCircle : CalendarDays}
-              iconTone={item.unread ? 'red' : 'blue'}
-              titleNumberOfLines={1}
-              subtitleNumberOfLines={2}
-              onPress={() => openDestination(item.href)}
-            />
-          ))
-        )}
-      </View>
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   panel: {
     position: 'absolute',
-    right: 0,
+    left: 16,
+    right: 16,
     zIndex: 40,
-    width: 336,
     maxHeight: 460,
+  },
+  notificationGroup: {
+    borderColor: 'rgba(10, 45, 127, 0.12)',
+    borderRadius: 20,
+    borderWidth: 1,
     overflow: 'hidden',
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 18,
-    borderLeftWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: 'rgba(10, 45, 127, 0.18)',
-    backgroundColor: colors.white,
-    shadowColor: colors.blue,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.16,
-    shadowRadius: 20,
-    elevation: 18,
   },
 });

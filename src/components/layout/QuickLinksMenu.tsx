@@ -1,22 +1,16 @@
-import { useEffect, useState } from 'react';
-import {
-  LayoutChangeEvent,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { useEffect } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
-  Easing,
-  Extrapolation,
   interpolate,
-  SharedValue,
+  ReduceMotion,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { LucideIcon } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
+import { motionDuration, motionEasing } from '../../lib/motion';
 import { colors } from '../../lib/theme/theme';
+import { floatingPanelStyles } from './floatingPanel';
 
 export type QuickLink = {
   label: string;
@@ -31,9 +25,8 @@ type QuickLinksMenuProps = {
   onSelect: (href: string) => void;
 };
 
-const menuWidth = 256;
-const rowHeight = 56;
-const rowGap = 3;
+const menuWidth = 280;
+const rowGap = 8;
 const panelPadding = 8;
 
 export function QuickLinksMenu({
@@ -43,127 +36,82 @@ export function QuickLinksMenu({
   onSelect,
 }: QuickLinksMenuProps) {
   const progress = useSharedValue(0);
-  const [panelHeight, setPanelHeight] = useState(0);
-
-  const measureLastItem = (event: LayoutChangeEvent) => {
-    const { height, y } = event.nativeEvent.layout;
-    const measuredHeight = y + height + panelPadding;
-    setPanelHeight((height) =>
-      Math.abs(height - measuredHeight) > 0.5 ? measuredHeight : height,
-    );
-  };
 
   useEffect(() => {
     progress.value = withTiming(open ? 1 : 0, {
-      duration: open ? 280 : 220,
-      easing: Easing.out(Easing.cubic),
+      duration: open ? motionDuration.subtleEnter : 140,
+      easing: open ? motionEasing.enter : motionEasing.exit,
+      reduceMotion: ReduceMotion.System,
     });
   }, [open, progress]);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    height: interpolate(progress.value, [0, 1], [0, panelHeight]),
-    opacity: interpolate(progress.value, [0, 0.08, 1], [0, 1, 1]),
+    opacity: progress.value,
+    transform: [
+      { scale: interpolate(progress.value, [0, 1], [0.98, 1]) },
+    ],
   }));
 
   return (
     <Animated.View
       pointerEvents={open ? 'auto' : 'none'}
-      style={[styles.panel, { top: topOffset }, animatedStyle]}
-      className="absolute left-0 z-40 bg-hercules-white shadow-lg"
+      style={[
+        floatingPanelStyles.shell,
+        styles.panel,
+        { top: topOffset + 12 },
+        animatedStyle,
+      ]}
+      className="absolute z-40"
     >
-      <View style={styles.panelContent}>
-        {links.map((link, index) => (
-          <QuickLinksMenuItem
-            key={`${link.label}-${link.href}`}
-            index={index}
-            link={link}
-            progress={progress}
-            onSelect={onSelect}
-            onLayout={index === links.length - 1 ? measureLastItem : undefined}
-          />
-        ))}
+      <View style={floatingPanelStyles.surface}>
+        <View style={styles.panelContent}>
+          {links.map((link) => (
+            <QuickLinksMenuItem
+              key={`${link.label}-${link.href}`}
+              link={link}
+              onSelect={onSelect}
+            />
+          ))}
+        </View>
       </View>
     </Animated.View>
   );
 }
 
 type QuickLinksMenuItemProps = {
-  index: number;
   link: QuickLink;
-  progress: SharedValue<number>;
   onSelect: (href: string) => void;
-  onLayout?: (event: LayoutChangeEvent) => void;
 };
 
 function QuickLinksMenuItem({
-  index,
   link,
-  progress,
   onSelect,
-  onLayout,
 }: QuickLinksMenuItemProps) {
   const Icon = link.icon;
 
-  const itemStyle = useAnimatedStyle(() => {
-    const start = Math.min(0.08 + index * 0.04, 0.36);
-    return {
-      opacity: interpolate(
-        progress.value,
-        [0, start, 1],
-        [0, 0, 1],
-        Extrapolation.CLAMP,
-      ),
-      transform: [
-        {
-          translateY: interpolate(
-            progress.value,
-            [start, 1],
-            [-8, 0],
-            Extrapolation.CLAMP,
-          ),
-        },
-      ],
-    };
-  });
-
   return (
-    <Animated.View
-      style={[itemStyle, styles.menuItem]}
-      onLayout={onLayout}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${link.label}`}
+      onPress={() => onSelect(link.href)}
+      className="min-h-[56px] flex-row items-center gap-3 rounded-[20px] px-3 active:bg-hercules-blue/5 active:opacity-100"
     >
-      <Pressable
-        onPress={() => onSelect(link.href)}
-        className="h-full flex-row items-center gap-3 rounded-[14px] px-3 active:opacity-70"
-      >
-        <View className="h-9 w-9 items-center justify-center rounded-full bg-hercules-red">
-          <Icon size={18} color={colors.white} />
-        </View>
-        <Text className="text-sm font-bold text-hercules-ink">{link.label}</Text>
-      </Pressable>
-    </Animated.View>
+      <View className="h-10 w-10 items-center justify-center rounded-[14px] bg-hercules-red">
+        <Icon size={19} color={colors.white} strokeWidth={2.3} />
+      </View>
+      <Text className="text-[15px] font-bold text-hercules-ink">{link.label}</Text>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   panel: {
+    position: 'absolute',
     width: menuWidth,
-    overflow: 'hidden',
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 18,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: 'rgba(10, 45, 127, 0.18)',
-    shadowColor: colors.blue,
-    shadowOffset: { width: 4, height: 10 },
-    shadowOpacity: 0.16,
-    shadowRadius: 18,
-    elevation: 18,
+    left: 16,
   },
   panelContent: {
     gap: rowGap,
     padding: panelPadding,
-  },
-  menuItem: {
-    height: rowHeight,
   },
 });

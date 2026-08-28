@@ -37,7 +37,7 @@ export function ReviewSetupStep({
 }: ReviewSetupStepProps) {
   useLayoutEffect(() => {
     onActionChange({
-      label: 'Finish Setup',
+      label: 'Finish Getting Started',
       onPress: onFinish,
     });
   }, [onActionChange, onFinish]);
@@ -45,43 +45,43 @@ export function ReviewSetupStep({
   return (
     <GettingStartedStepCard
       icon={CheckCircle2}
-      title="Review Your Dealer Setup"
-      description="Everything collected here is saved to your Hercules onboarding record. Review any item before finishing."
+      title="Review Getting Started"
+      description="Everything collected here is saved to your Hercules onboarding record. Review any milestone before finishing."
     >
       <View className="gap-3">
         <ReviewRow
           icon={UserRound}
           title="Business Profile"
           detail={`${user.firstName} ${user.lastName} · ${user.prospectProfile?.companyName ?? 'Company needed'}`}
-          complete={Boolean(user.phone && user.prospectProfile?.companyName)}
+          complete={Boolean(user.prospectProfile?.companyName)}
           onPress={() => onEdit(0)}
         />
         <ReviewRow
-          icon={PackageCheck}
-          title="Equipment"
-          detail={equipment ? `${equipment.equipmentName} · ${equipment.modelNumber}` : 'Registration needed'}
-          complete={Boolean(equipment)}
-          onPress={() => onEdit(1)}
-        />
-        <ReviewRow
           icon={CalendarDays}
-          title="Certification"
-          detail={classSession ? `${classSession.title} · ${formatShortDate(classSession.startsAt)}` : 'Class needed'}
+          title="LG Training"
+          detail={classSession ? `${classSession.title} · ${formatShortDate(classSession.startsAt)} · Preference saved` : 'Training selection needed'}
           complete={Boolean(classSession)}
-          onPress={() => onEdit(2)}
+          onPress={() => onEdit(1)}
         />
         <ReviewRow
           icon={ShieldCheck}
           title="JB Warranties"
-          detail={warrantyComplete ? 'Signup confirmed' : 'Confirmation needed'}
+          detail={warrantyComplete ? 'Completion recorded' : 'Confirmation needed'}
           complete={warrantyComplete}
-          onPress={() => onEdit(3)}
+          onPress={() => onEdit(2)}
         />
         <ReviewRow
           icon={Megaphone}
           title="Marketing Consultation"
-          detail={marketingComplete ? 'Availability submitted' : 'Availability needed'}
+          detail={marketingComplete ? 'Availability saved' : 'Availability needed'}
           complete={marketingComplete}
+          onPress={() => onEdit(3)}
+        />
+        <ReviewRow
+          icon={PackageCheck}
+          title="First LG System"
+          detail={equipment ? `${equipment.equipmentName} · ${equipment.modelNumber} · Record saved` : 'Equipment record needed'}
+          complete={Boolean(equipment)}
           onPress={() => onEdit(4)}
         />
       </View>

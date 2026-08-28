@@ -1,13 +1,36 @@
 {
   "cli": {
-    "version": ">= 14.0.0"
+    "version": ">= 14.0.0",
+    "appVersionSource": "remote",
+    "requireCommit": true
   },
   "build": {
     "internal": {
       "distribution": "internal",
       "ios": {
         "simulator": false
-      }
+      },
+      "channel": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "preview",
+      "environment": "production"
+    },
+    "production": {
+      "distribution": "store",
+      "autoIncrement": true,
+      "channel": "production",
+      "environment": "production"
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "draft"
+      },
+      "ios": {}
     }
   }
 }

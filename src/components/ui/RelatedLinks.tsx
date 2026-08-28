@@ -1,5 +1,6 @@
-import { Href, router } from 'expo-router';
-import { LucideIcon } from 'lucide-react-native';
+import { router } from 'expo-router';
+import type { Href } from 'expo-router';
+import type { LucideIcon } from 'lucide-react-native';
 import { View } from 'react-native';
 import { ListItem } from './ListItem';
 import { SectionHeader } from './SectionHeader';
@@ -19,7 +20,7 @@ type RelatedLinksProps = {
 
 export function RelatedLinks({ title, links }: RelatedLinksProps) {
   return (
-    <View>
+    <View className="gap-3">
       <SectionHeader title={title} />
       <View className="gap-3">
         {links.map((link) => (

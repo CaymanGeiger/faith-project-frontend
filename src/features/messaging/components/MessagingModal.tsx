@@ -1,5 +1,8 @@
-import { Conversation, User } from '../../../lib/api/types';
-import { useCallback, useEffect, useState } from 'react';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Alert, useWindowDimensions } from 'react-native';
+import { Conversation, Message, User } from '../../../lib/api/types';
+import { conversationsApi } from '../../../lib/api/endpoints';
 import { MessagingSocket } from '../../../lib/messagingSocket';
 import { ModalSheet } from '../../../components/ui/ModalSheet';
 import { fullName } from '../../../lib/format';
@@ -23,35 +26,92 @@ export function MessagingModal({
   socket,
   onClose,
 }: MessagingModalProps) {
-  const [lastConversation, setLastConversation] = useState<Conversation | null>(
-    conversation,
-  );
-
-  useEffect(() => {
-    if (conversation) {
-      setLastConversation(conversation);
-    }
-  }, [conversation]);
-
-  const displayedConversation = conversation ?? lastConversation;
-  const conversationId = displayedConversation?.id ?? null;
+  const { height: windowHeight } = useWindowDimensions();
+  const conversationId = conversation?.id ?? null;
   const messages = useConversationMessages(conversationId, socket);
   const typing = useTypingIndicator(conversationId, socket, currentUser);
   useReadReceipts(conversationId, socket);
 
-  const otherParticipant = displayedConversation?.participants.find(
+  const otherParticipant = conversation?.participants.find(
     (participant) => participant.userId !== currentUser.id,
   );
-  const handleDismissed = useCallback(() => {
-    setLastConversation(null);
-  }, []);
+  const [blockedByCurrentUser, setBlockedByCurrentUser] = useState(false);
+  const [blockedByParticipant, setBlockedByParticipant] = useState(false);
+
+  useEffect(() => {
+    setBlockedByCurrentUser(
+      Boolean(conversation?.currentUserHasBlockedParticipant),
+    );
+    setBlockedByParticipant(Boolean(conversation?.currentUserIsBlocked));
+  }, [conversation?.currentUserHasBlockedParticipant, conversation?.currentUserIsBlocked, conversationId]);
+
+  const reportMessage = (message: Message) => {
+    if (!conversationId) return;
+    Alert.alert('Report message?', 'Hercules will review this report.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Report',
+        style: 'destructive',
+        onPress: () => {
+          void conversationsApi
+            .reportMessage(conversationId, message.id)
+            .then(() => Alert.alert('Report received', 'Hercules will review this message.'))
+            .catch((caught: unknown) =>
+              Alert.alert(
+                'Unable to report message',
+                caught instanceof Error ? caught.message : 'Please try again.',
+              ),
+            );
+        },
+      },
+    ]);
+  };
+
+  const blockParticipant = () => {
+    if (!conversationId) return;
+    Alert.alert(
+      'Block participant?',
+      'They will no longer be able to send messages in this conversation.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Block',
+          style: 'destructive',
+          onPress: () => {
+            void conversationsApi
+              .blockParticipant(conversationId)
+              .then(() => setBlockedByCurrentUser(true))
+              .catch((caught: unknown) =>
+                Alert.alert(
+                  'Unable to block participant',
+                  caught instanceof Error ? caught.message : 'Please try again.',
+                ),
+              );
+          },
+        },
+      ],
+    );
+  };
+
+  const unblockParticipant = () => {
+    if (!conversationId) return;
+    void conversationsApi
+      .unblockParticipant(conversationId)
+      .then(() => setBlockedByCurrentUser(false))
+      .catch((caught: unknown) =>
+        Alert.alert(
+          'Unable to unblock participant',
+          caught instanceof Error ? caught.message : 'Please try again.',
+        ),
+      );
+  };
 
   return (
     <ModalSheet
       visible={Boolean(conversation)}
-      title={otherParticipant ? fullName(otherParticipant.user) : 'Messages'}
+      title={otherParticipant ? fullName(otherParticipant.user) : 'Chat'}
       onClose={onClose}
-      onDismissed={handleDismissed}
+      closeTravelDistance={windowHeight}
     >
       <MessageThread
         conversationId={conversationId}
@@ -63,6 +123,13 @@ export function MessagingModal({
         onSend={messages.sendMessage}
         onTypingStart={typing.startTyping}
         onTypingStop={typing.stopTyping}
+        onReportMessage={reportMessage}
+        blockedByCurrentUser={blockedByCurrentUser}
+        blockedByParticipant={blockedByParticipant}
+        onBlockParticipant={blockParticipant}
+        onUnblockParticipant={unblockParticipant}
+        onReviewTerms={() => router.push('/terms')}
+        readyToSend={messages.readyToSend}
       />
     </ModalSheet>
   );

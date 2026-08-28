@@ -1,5 +1,12 @@
-import { useEffect, useRef } from 'react';
-import { Animated, Easing, Text, View } from 'react-native';
+import { useEffect } from 'react';
+import { Text, View } from 'react-native';
+import Animated, {
+  ReduceMotion,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import { motionDuration, motionEasing } from '../../lib/motion';
 import { gettingStartedSteps } from './gettingStarted';
 
 type GettingStartedProgressProps = {
@@ -13,24 +20,24 @@ export function GettingStartedProgress({
   const isReviewStep = currentStep >= setupStepCount;
   const activeStep = Math.min(currentStep + 1, setupStepCount);
   const progress = activeStep / setupStepCount;
-  const progressValue = useRef(new Animated.Value(progress)).current;
+  const progressValue = useSharedValue(progress);
 
   useEffect(() => {
-    const animation = Animated.timing(progressValue, {
-      toValue: progress,
-      duration: 280,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
+    progressValue.value = withTiming(progress, {
+      duration: motionDuration.layout,
+      easing: motionEasing.enter,
+      reduceMotion: ReduceMotion.System,
     });
-
-    animation.start();
-    return () => animation.stop();
   }, [progress, progressValue]);
 
+  const progressStyle = useAnimatedStyle(() => ({
+    width: `${progressValue.value * 100}%`,
+  }));
+
   return (
-    <View className="gap-3 px-1 pb-3 pt-2">
+    <View className="gap-3 border-b border-hercules-blue/15 px-1 pb-5 pt-2">
       <View className="flex-row items-center justify-between gap-3">
-        <Text className="text-base font-extrabold text-hercules-ink">
+        <Text className="text-base font-extrabold tracking-[-0.1px] text-hercules-ink">
           Getting Started
         </Text>
         <Text className="text-sm font-extrabold text-hercules-blue">
@@ -47,12 +54,7 @@ export function GettingStartedProgress({
       >
         <Animated.View
           className="h-full rounded-pill bg-hercules-blue"
-          style={{
-            width: progressValue.interpolate({
-              inputRange: [0, 1],
-              outputRange: ['0%', '100%'],
-            }),
-          }}
+          style={progressStyle}
         />
       </View>
     </View>

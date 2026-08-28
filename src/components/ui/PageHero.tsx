@@ -4,20 +4,25 @@ import { AnimatedCard } from './AnimatedCard';
 type PageHeroProps = {
   title: string;
   subtitle?: string;
+  reveal?: boolean;
 };
 
 export function PageHero({
   title,
   subtitle,
+  reveal = true,
 }: PageHeroProps) {
   return (
-    <AnimatedCard className="px-1 pb-1 pt-2">
-      <View className="gap-1.5">
-        <Text className="text-3xl font-extrabold leading-9 text-hercules-ink">
+    <AnimatedCard
+      reveal={reveal}
+      className="border-b border-hercules-blue/15 px-1 pb-6 pt-2"
+    >
+      <View className="gap-2">
+        <Text className="text-[32px] font-extrabold leading-[38px] tracking-[-0.7px] text-hercules-ink">
           {title}
         </Text>
         {subtitle ? (
-          <Text className="text-sm font-semibold leading-5 text-hercules-muted">
+          <Text className="max-w-[330px] text-[15px] font-medium leading-5 text-hercules-muted">
             {subtitle}
           </Text>
         ) : null}

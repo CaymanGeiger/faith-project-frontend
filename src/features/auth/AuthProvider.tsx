@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import {
   createContext,
   PropsWithChildren,
@@ -10,17 +10,24 @@ import {
 } from 'react';
 import { apiFetch, setApiToken } from '../../lib/api/client';
 import { AuthResponse, User } from '../../lib/api/types';
+import { clearGettingStartedDraft } from '../getting-started/gettingStarted';
 
 const TOKEN_KEY = 'faith_project_access_token';
 
 type RegisterInput = {
+  accountType: 'PROSPECT' | 'SALES_MANAGER';
   token: string;
   email: string;
   password: string;
   firstName: string;
   lastName: string;
   phone?: string;
-  companyName: string;
+  companyName?: string;
+  termsAccepted: boolean;
+};
+
+type InviteDetails = {
+  accountType: 'PROSPECT' | 'SALES_MANAGER';
 };
 
 type AuthContextValue = {
@@ -28,7 +35,9 @@ type AuthContextValue = {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<User>;
+  getInviteDetails: (token: string) => Promise<InviteDetails>;
   registerFromInvite: (input: RegisterInput) => Promise<User>;
+  acceptLegalTerms: () => Promise<User>;
   logout: () => Promise<void>;
   refreshMe: () => Promise<void>;
 };
@@ -48,12 +57,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setApiToken(response.accessToken);
     setToken(response.accessToken);
     setUser(response.user);
-    await AsyncStorage.setItem(TOKEN_KEY, response.accessToken);
+    await SecureStore.setItemAsync(TOKEN_KEY, response.accessToken);
   }, []);
 
   const restoreSession = useCallback(async () => {
     try {
-      const storedToken = await AsyncStorage.getItem(TOKEN_KEY);
+      const storedToken = await SecureStore.getItemAsync(TOKEN_KEY);
       if (!storedToken) {
         return;
       }
@@ -66,7 +75,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setApiToken(null);
       setToken(null);
       setUser(null);
-      await AsyncStorage.removeItem(TOKEN_KEY);
+      await SecureStore.deleteItemAsync(TOKEN_KEY);
     } finally {
       setLoading(false);
     }
@@ -96,12 +105,28 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [persistAuth],
   );
 
+  const getInviteDetails = useCallback(async (inviteToken: string) => {
+    return apiFetch<InviteDetails>('/auth/invite-details', {
+      method: 'POST',
+      body: JSON.stringify({ token: inviteToken }),
+    });
+  }, []);
+
   const refreshMe = useCallback(async () => {
     const response = await apiFetch<{ user: User }>('/auth/me');
     setUser(response.user);
   }, []);
 
+  const acceptLegalTerms = useCallback(async () => {
+    const response = await apiFetch<{ user: User }>('/me/legal-acceptance', {
+      method: 'PATCH',
+    });
+    setUser(response.user);
+    return response.user;
+  }, []);
+
   const logout = useCallback(async () => {
+    const userId = user?.id;
     try {
       await apiFetch('/auth/logout', { method: 'POST' });
     } catch {
@@ -111,8 +136,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setApiToken(null);
     setToken(null);
     setUser(null);
-    await AsyncStorage.removeItem(TOKEN_KEY);
-  }, []);
+    await Promise.all([
+      SecureStore.deleteItemAsync(TOKEN_KEY),
+      userId ? clearGettingStartedDraft(userId) : Promise.resolve(),
+    ]);
+  }, [user?.id]);
 
   const value = useMemo(
     () => ({
@@ -120,11 +148,23 @@ export function AuthProvider({ children }: PropsWithChildren) {
       token,
       loading,
       login,
+      getInviteDetails,
       registerFromInvite,
+      acceptLegalTerms,
       logout,
       refreshMe,
     }),
-    [user, token, loading, login, registerFromInvite, logout, refreshMe],
+    [
+      user,
+      token,
+      loading,
+      login,
+      getInviteDetails,
+      registerFromInvite,
+      acceptLegalTerms,
+      logout,
+      refreshMe,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

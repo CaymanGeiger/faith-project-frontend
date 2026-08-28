@@ -11,7 +11,7 @@ module.exports = {
           white: '#FFFFFF',
           blue: '#0A2D7F',
           ink: '#0A2D7F',
-          muted: '#0A2D7F',
+          muted: 'rgba(10, 45, 127, 0.68)',
         },
       },
       borderRadius: {

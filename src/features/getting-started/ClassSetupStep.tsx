@@ -29,7 +29,11 @@ export function ClassSetupStep({
   onComplete,
   onActionChange,
 }: ClassSetupStepProps) {
-  const enrolled = classes.find((session) => session.isEnrolled);
+  const enrolled = classes.find(
+    (session) =>
+      session.enrollmentStatus === 'ENROLLED' ||
+      session.enrollmentStatus === 'COMPLETED',
+  );
   const [selectedId, setSelectedId] = useState(
     enrolled?.id ?? draft?.classSessionId ?? classes[0]?.id ?? '',
   );
@@ -42,7 +46,7 @@ export function ClassSetupStep({
       return;
     }
     if (!selectedId) {
-      setError('Choose a certification class before continuing.');
+      setError('Choose an LG training session before continuing.');
       return;
     }
 
@@ -53,7 +57,11 @@ export function ClassSetupStep({
       await clearGettingStartedDraftFields(userId, 'classSessionId');
       await onComplete();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Unable to enroll in the class');
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : 'Unable to save your training preference',
+      );
     } finally {
       setSaving(false);
     }
@@ -77,14 +85,16 @@ export function ClassSetupStep({
   return (
     <GettingStartedStepCard
       icon={CalendarDays}
-      title="Choose Your Certification Class"
-      description="Certification sessions are virtual. Select the upcoming class that works best for your schedule."
+      title="Choose Your LG Training"
+      description="Choose a session that works for your schedule. Hercules will confirm final enrollment and class logistics. Completing training may help you meet current program requirements; eligibility is confirmed separately."
     >
       <View className="gap-3">
         {error ? <ErrorState message={error} /> : null}
         {classes.map((session) => {
           const selected = session.id === selectedId;
-          const complete = Boolean(session.isEnrolled);
+          const complete =
+            session.enrollmentStatus === 'ENROLLED' ||
+            session.enrollmentStatus === 'COMPLETED';
           const Icon = complete ? CheckCircle2 : selected ? CheckCircle2 : Circle;
           return (
             <Pressable
@@ -110,14 +120,18 @@ export function ClassSetupStep({
                 </Text>
                 <Text className="text-xs font-extrabold text-hercules-blue">
                   {formatShortDate(session.startsAt)} · {formatTime(session.startsAt)}
-                  {complete ? ' · Enrolled' : ''}
+                  {session.enrollmentStatus === 'COMPLETED'
+                    ? ' · Completed'
+                    : complete
+                      ? ' · Preference saved'
+                      : ''}
                 </Text>
               </View>
             </Pressable>
           );
         })}
         {classes.length === 0 ? (
-          <ErrorState message="No certification classes are currently available." />
+          <ErrorState message="No LG training sessions are currently available." />
         ) : null}
       </View>
     </GettingStartedStepCard>

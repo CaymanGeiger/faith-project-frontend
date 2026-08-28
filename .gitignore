@@ -8,6 +8,10 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
+eas-*-qr.png
+eas-*-qr.svg
+expo-*-qr.png
+expo-*-qr.svg
 
 # Native
 .kotlin/

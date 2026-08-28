@@ -1,61 +1,56 @@
-import { Award, ExternalLink, Megaphone } from 'lucide-react-native';
-import { useState } from 'react';
-import { Linking, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { CalendarCheck, Megaphone } from 'lucide-react-native';
+import { Text, View } from 'react-native';
 import { AppScreen } from '../../../components/layout/AppScreen';
 import { prospectQuickLinks } from '../../../components/layout/navigation';
 import { AnimatedCard } from '../../../components/ui/AnimatedCard';
-import { PrimaryButton } from '../../../components/ui/PrimaryButton';
 import { PageHero } from '../../../components/ui/PageHero';
-import { ErrorState } from '../../../components/ui/StateViews';
+import { PrimaryButton } from '../../../components/ui/PrimaryButton';
+import { SectionHeader } from '../../../components/ui/SectionHeader';
 import { colors } from '../../../lib/theme/theme';
 
-const marketingConsultationFormUrl = 'https://form.jotform.com/262005957430050';
-
 export default function ProspectMarketingScreen() {
-  const [error, setError] = useState<string | null>(null);
-
-  const openConsultationForm = async () => {
-    setError(null);
-    try {
-      await Linking.openURL(marketingConsultationFormUrl);
-    } catch {
-      setError('Unable to open the marketing consultation form.');
-    }
-  };
-
   return (
-    <AppScreen
-      title="Marketing"
-      quickLinks={prospectQuickLinks}
-    >
+    <AppScreen title="Marketing Consultation" quickLinks={prospectQuickLinks}>
       <PageHero
-        title="Marketing Consultation"
-        subtitle="Complete the required onboarding consultation."
+        title="Marketing Support"
+        subtitle="Connect with Hercules for marketing resources, growth planning, and practical next steps for your business."
       />
 
-      {error ? <ErrorState message={error} /> : null}
-
-      <AnimatedCard index={1} className="gap-4 rounded-[24px] border border-hercules-blue/20 bg-hercules-white p-5">
-        <View className="flex-row items-center gap-3">
-          <View className="h-11 w-11 items-center justify-center rounded-full bg-hercules-blue">
-            <Megaphone size={22} color={colors.white} strokeWidth={2.4} />
+      <AnimatedCard
+        index={1}
+        className="gap-4 rounded-[16px] border border-hercules-blue/15 bg-hercules-white p-5"
+      >
+        <View className="flex-row items-start gap-3">
+          <View className="h-10 w-10 items-center justify-center rounded-[12px] bg-hercules-red">
+            <Megaphone size={21} color={colors.white} strokeWidth={2.4} />
           </View>
-          <Text className="text-2xl font-extrabold text-hercules-ink">
-            Schedule Your Consultation
-          </Text>
+          <View className="min-w-0 flex-1 gap-2">
+            <SectionHeader title="Why It Matters" />
+            <Text className="text-[15px] leading-5 text-hercules-muted">
+              Use this space to tell Hercules when you are available to discuss
+              sales tools, marketing resources, and business-growth support that
+              may be available.
+            </Text>
+          </View>
         </View>
-        <View className="gap-3">
-          <Text className="text-base font-semibold leading-6 text-hercules-muted">
-            Use the marketing consultation form to share the details needed for
-            your onboarding consultation. The form collects your contact
-            information, dealership context, and preferred next steps so the
-            marketing team can follow up.
+      </AnimatedCard>
+
+      <AnimatedCard
+        index={2}
+        className="gap-4 rounded-[16px] border border-hercules-blue/15 bg-hercules-white p-5"
+      >
+        <View className="gap-2">
+          <SectionHeader title="Save Your Availability" />
+          <Text className="text-[15px] leading-5 text-hercules-muted">
+            Add three times that work for you in Getting Started. Contact your
+            Hercules representative to confirm availability and next steps.
           </Text>
         </View>
         <PrimaryButton
-          label="Open Marketing Form"
-          icon={ExternalLink}
-          onPress={openConsultationForm}
+          label="Share Availability"
+          icon={CalendarCheck}
+          onPress={() => router.push('/prospect/getting-started')}
         />
       </AnimatedCard>
     </AppScreen>

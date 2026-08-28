@@ -43,7 +43,7 @@ export function ProfileSetupStep({
   const [error, setError] = useState<string | null>(null);
 
   const save = useCallback(async () => {
-    if (![email, firstName, lastName, phone, companyName].every((value) => value.trim())) {
+    if (![email, firstName, lastName, companyName].every((value) => value.trim())) {
       setError('Complete every field before continuing.');
       return;
     }
@@ -82,7 +82,7 @@ export function ProfileSetupStep({
     <GettingStartedStepCard
       icon={UserRound}
       title="Confirm Your Business Profile"
-      description="Keep your business and contact details up to date."
+      description="Confirm your contact and company details so Hercules can support every step of Getting Started."
     >
       <View className="gap-4">
         {error ? <ErrorState message={error} /> : null}
@@ -103,7 +103,7 @@ export function ProfileSetupStep({
           onChangeText={setLastName}
         />
         <TextInput
-          label="Phone"
+          label="Phone (optional)"
           value={phone}
           onChangeText={setPhone}
           keyboardType="phone-pad"

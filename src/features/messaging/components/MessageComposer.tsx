@@ -5,28 +5,37 @@ import { inputStyles } from '../../../components/ui/inputStyles';
 import { colors } from '../../../lib/theme/theme';
 
 type MessageComposerProps = {
-  onSend: (body: string) => void;
+  onSend: (body: string) => Promise<void>;
   onTypingStart: () => void;
   onTypingStop: () => void;
+  disabled?: boolean;
 };
 
 export function MessageComposer({
   onSend,
   onTypingStart,
   onTypingStop,
+  disabled = false,
 }: MessageComposerProps) {
   const [body, setBody] = useState('');
+  const [sending, setSending] = useState(false);
 
-  const send = () => {
+  const send = async () => {
     const trimmed = body.trim();
-    if (!trimmed) return;
-    onSend(trimmed);
-    setBody('');
-    onTypingStop();
+    if (!trimmed || disabled || sending) return;
+    setSending(true);
+    try {
+      await onSend(trimmed);
+      setBody('');
+      onTypingStop();
+    } finally {
+      setSending(false);
+    }
   };
+  const canSend = body.trim().length > 0 && !disabled && !sending;
 
   return (
-    <View className="flex-row items-end gap-3 rounded-[22px] bg-hercules-white p-3">
+    <View className="flex-row items-end gap-2 border-t border-hercules-blue/10 pt-3">
       <TextInput
         value={body}
         onChangeText={(value) => {
@@ -36,14 +45,22 @@ export function MessageComposer({
         }}
         placeholder="Message"
         placeholderTextColor={colors.muted}
+        selectionColor={colors.blue}
         multiline
+        maxLength={2_000}
+        editable={!disabled && !sending}
         style={inputStyles.multiline}
-        className="max-h-28 min-h-11 flex-1 rounded-[18px] border border-hercules-blue bg-hercules-white px-4 py-3 text-base text-hercules-ink"
+        className="max-h-28 min-h-12 flex-1 rounded-[20px] border border-hercules-blue/20 bg-hercules-white px-4 py-[13px] text-base text-hercules-ink"
       />
       <Pressable
+        accessibilityRole="button"
         accessibilityLabel="Send message"
-        onPress={send}
-        className="h-11 w-11 items-center justify-center rounded-full bg-hercules-blue active:opacity-80"
+        accessibilityState={{ disabled: !canSend }}
+        disabled={!canSend}
+        onPress={() => void send()}
+        className={`h-12 w-12 items-center justify-center rounded-full bg-hercules-blue active:opacity-80 ${
+          canSend ? 'opacity-100' : 'opacity-40'
+        }`}
       >
         <Send size={20} color={colors.white} strokeWidth={2.5} />
       </Pressable>

@@ -1,14 +1,19 @@
-import { useEffect, useState } from 'react';
-import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import type { LayoutChangeEvent } from 'react-native';
 import { router, usePathname } from 'expo-router';
-import { Bell } from 'lucide-react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
-import { AppLogo } from '../ui/AppLogo';
-import { IconButton } from '../ui/IconButton';
-import { colors } from '../../lib/theme/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  ReduceMotion,
+} from 'react-native-reanimated';
+import { motionDuration } from '../../lib/motion';
 import { AnimatedMenuButton } from './AnimatedMenuButton';
+import { AnimatedNotificationButton } from './AnimatedNotificationButton';
 import { NotificationsMenu } from './NotificationsMenu';
-import { QuickLink, QuickLinksMenu } from './QuickLinksMenu';
+import { QuickLinksMenu } from './QuickLinksMenu';
+import type { QuickLink } from './QuickLinksMenu';
 
 type AppHeaderProps = {
   title: string;
@@ -16,16 +21,26 @@ type AppHeaderProps = {
   messagesHref: '/prospect/messages' | '/manager/messages';
 };
 
+const overlayExitDuration = 220;
+
 export function AppHeader({ title, links, messagesHref }: AppHeaderProps) {
   const [quickLinksOpen, setQuickLinksOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [overlayMounted, setOverlayMounted] = useState(false);
   const [headerHeight, setHeaderHeight] = useState(0);
   const pathname = usePathname();
-  const showingHomeLogo = title === 'LG Dealer Portal';
+  const insets = useSafeAreaInsets();
+  const overlayOpen = quickLinksOpen || notificationsOpen;
+  const shouldRenderOverlay = overlayOpen || overlayMounted;
 
-  const openLink = (href: string) => {
+  const closeOverlays = useCallback(() => {
     setQuickLinksOpen(false);
     setNotificationsOpen(false);
+  }, []);
+
+  const openLink = (href: string) => {
+    closeOverlays();
     router.push(href);
   };
 
@@ -34,18 +49,38 @@ export function AppHeader({ title, links, messagesHref }: AppHeaderProps) {
     setNotificationsOpen((value) => !value);
   };
 
+  const handleNotificationsLoading = useCallback((loading: boolean) => {
+    setNotificationsLoading(loading);
+  }, []);
+
   const measureHeader = (event: LayoutChangeEvent) => {
     setHeaderHeight(event.nativeEvent.layout.height);
   };
 
   useEffect(() => {
-    setQuickLinksOpen(false);
-    setNotificationsOpen(false);
-  }, [pathname]);
+    closeOverlays();
+  }, [closeOverlays, pathname]);
+
+  useEffect(() => {
+    if (overlayOpen) {
+      setOverlayMounted(true);
+      return;
+    }
+
+    if (!overlayMounted) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setOverlayMounted(false);
+    }, overlayExitDuration);
+
+    return () => clearTimeout(timer);
+  }, [overlayMounted, overlayOpen]);
 
   return (
     <View
-      className="z-30 bg-hercules-red px-5 pb-3 pt-2"
+      className="z-30 bg-hercules-red px-3 py-3"
       onLayout={measureHeader}
     >
       <View className="flex-row items-center justify-between">
@@ -56,50 +91,78 @@ export function AppHeader({ title, links, messagesHref }: AppHeaderProps) {
             setQuickLinksOpen((value) => !value);
           }}
         />
-        <View className="flex-1 items-center justify-center" style={styles.centerSlot}>
-          <View
-            pointerEvents="none"
-            style={[styles.centerContent, { opacity: showingHomeLogo ? 1 : 0 }]}
+        <View
+          className="flex-1 items-center justify-center"
+          style={styles.centerSlot}
+        >
+          <Animated.View
+            key={title}
+            collapsable={false}
+            entering={FadeIn.duration(motionDuration.subtleEnter).reduceMotion(
+              ReduceMotion.System,
+            )}
+            exiting={FadeOut.duration(140).reduceMotion(ReduceMotion.System)}
+            className="absolute inset-0 items-center justify-center"
           >
-            <View style={styles.logoMarkBacking}>
-              <AppLogo size="header" />
-            </View>
-          </View>
-          {!showingHomeLogo ? (
-            <Animated.View
-              key={title}
-              entering={FadeIn.duration(150)}
-              style={styles.centerContent}
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+              className="text-center text-lg font-bold text-hercules-white"
             >
-              <Text
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                className="text-center text-xl font-extrabold text-hercules-white"
-              >
-                {title}
-              </Text>
-            </Animated.View>
-          ) : null}
+              {title}
+            </Text>
+          </Animated.View>
         </View>
-        <IconButton
-          icon={Bell}
-          label="Notifications"
+        <AnimatedNotificationButton
           onPress={toggleNotifications}
-          tone="red"
+          open={notificationsOpen}
+          loading={notificationsLoading}
         />
       </View>
-      <QuickLinksMenu
-        links={links}
-        open={quickLinksOpen}
-        topOffset={headerHeight}
-        onSelect={openLink}
-      />
-      <NotificationsMenu
-        open={notificationsOpen}
-        topOffset={headerHeight}
-        messagesHref={messagesHref}
-        onClose={() => setNotificationsOpen(false)}
-      />
+      <Modal
+        animationType="none"
+        navigationBarTranslucent
+        onRequestClose={closeOverlays}
+        presentationStyle="overFullScreen"
+        statusBarTranslucent
+        transparent
+        visible={shouldRenderOverlay}
+      >
+        <View style={styles.overlayRoot}>
+          {overlayOpen ? (
+            <Animated.View
+              entering={FadeIn.duration(140).reduceMotion(ReduceMotion.System)}
+              exiting={FadeOut.duration(overlayExitDuration).reduceMotion(
+                ReduceMotion.System,
+              )}
+              pointerEvents="none"
+              style={[StyleSheet.absoluteFill, styles.overlayScrim]}
+            />
+          ) : null}
+          <Pressable
+            accessible={false}
+            onPress={closeOverlays}
+            pointerEvents={overlayOpen ? 'auto' : 'none'}
+            style={StyleSheet.absoluteFill}
+          />
+          <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+            <QuickLinksMenu
+              links={links}
+              open={quickLinksOpen}
+              topOffset={insets.top + headerHeight}
+              onSelect={openLink}
+            />
+            <NotificationsMenu
+              open={notificationsOpen}
+              topOffset={insets.top + headerHeight}
+              messagesHref={messagesHref}
+              onLoadingChange={handleNotificationsLoading}
+              onClose={closeOverlays}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -108,20 +171,10 @@ const styles = StyleSheet.create({
   centerSlot: {
     height: 44,
   },
-  centerContent: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
+  overlayRoot: {
+    flex: 1,
   },
-  logoMarkBacking: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 999,
-    backgroundColor: colors.white,
+  overlayScrim: {
+    backgroundColor: 'rgba(10, 45, 127, 0.12)',
   },
 });

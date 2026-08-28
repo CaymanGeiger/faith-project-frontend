@@ -8,6 +8,8 @@ export type User = {
   phone: string | null;
   role: UserRole;
   status: 'ACTIVE' | 'INVITED' | 'DISABLED';
+  termsAcceptedAt: string | null;
+  termsVersion: string | null;
 };
 
 export type AuthResponse = {
@@ -37,6 +39,7 @@ export type ClassSession = {
   virtualUrl: string;
   status: string;
   isEnrolled?: boolean;
+  enrollmentStatus?: 'ENROLLED' | 'COMPLETED' | 'CANCELED' | null;
 };
 
 export type ClassEnrollment = {
@@ -96,6 +99,20 @@ export type MarketingConsultation = {
   completedAt: string | null;
 };
 
+export type OnboardingSummary = {
+  openTodos: number;
+  completedTodos: number;
+  classEnrollments: number;
+  equipmentRegistrations: number;
+  marketingConsultationStatus: string;
+  trainingSelected: boolean;
+  trainingCompleted: boolean;
+  firstEquipmentRegistered: boolean;
+  jbWarrantiesCompleted: boolean;
+  marketingConsultationSubmitted: boolean;
+  marketingConsultationCompleted: boolean;
+};
+
 export type LeadRecord = {
   id: string;
   prospectUserId: string;
@@ -134,5 +151,7 @@ export type Conversation = {
   currentUserLastReadAt?: string | null;
   unreadCount?: number;
   lastMessage?: Message | null;
+  currentUserHasBlockedParticipant?: boolean;
+  currentUserIsBlocked?: boolean;
   participants: ConversationParticipant[];
 };

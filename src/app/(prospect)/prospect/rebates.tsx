@@ -1,13 +1,17 @@
 import { BadgeDollarSign } from 'lucide-react-native';
-import { Linking, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { AppScreen } from '../../../components/layout/AppScreen';
 import { prospectQuickLinks } from '../../../components/layout/navigation';
 import { AnimatedCard } from '../../../components/ui/AnimatedCard';
 import { ListItem } from '../../../components/ui/ListItem';
+import { ListGroup } from '../../../components/ui/ListGroup';
 import { PageHero } from '../../../components/ui/PageHero';
-import { ErrorState, LoadingState } from '../../../components/ui/StateViews';
+import { SkeletonListGroup } from '../../../components/ui/SkeletonPrimitives';
+import { SkeletonReveal } from '../../../components/ui/SkeletonReveal';
+import { ErrorState } from '../../../components/ui/StateViews';
 import { benefitsApi } from '../../../lib/api/endpoints';
 import { useAsyncData } from '../../../lib/hooks/useAsyncData';
+import { openExternalUrl } from '../../../lib/openExternalUrl';
 
 export default function ProspectRebatesScreen() {
   const benefits = useAsyncData(() => benefitsApi.list(), []);
@@ -19,34 +23,52 @@ export default function ProspectRebatesScreen() {
     <AppScreen title="Rebates" quickLinks={prospectQuickLinks}>
       <PageHero
         title="Rebates"
-        subtitle="Current LG dealer incentives and savings."
+        subtitle="Review current dealer savings, promotions, and program-specific offers."
       />
 
-      {benefits.loading ? <LoadingState label="Loading rebates" /> : null}
-      {benefits.error ? (
-        <ErrorState message={benefits.error} onRetry={benefits.reload} />
-      ) : null}
-      {benefits.data && rebates.length === 0 ? (
-        <AnimatedCard index={1}>
+      <AnimatedCard index={1}>
+        {benefits.error && !benefits.data ? (
+          <ErrorState message={benefits.error} onRetry={benefits.reload} />
+        ) : benefits.data && rebates.length === 0 ? (
           <View className="rounded-[20px] border border-hercules-blue/20 bg-hercules-white p-5">
             <Text className="font-bold text-hercules-muted">
               There are no rebate programs available right now.
+              Your Hercules representative can help with current eligibility.
             </Text>
           </View>
-        </AnimatedCard>
-      ) : null}
-      {rebates.map((rebate, index) => (
-        <AnimatedCard key={rebate.id} index={index + 1}>
-          <ListItem
-            title={rebate.title}
-            subtitle={rebate.description}
-            meta="Available"
-            icon={BadgeDollarSign}
-            iconTone={index % 2 === 0 ? 'red' : 'blue'}
-            onPress={() => void Linking.openURL(rebate.url)}
-          />
-        </AnimatedCard>
-      ))}
+        ) : rebates.length > 0 ? (
+          <ListGroup>
+            {rebates.map((rebate, index) => (
+              <ListItem
+                key={rebate.id}
+                title={rebate.title}
+                subtitle={rebate.description}
+                meta="Learn more"
+                icon={BadgeDollarSign}
+                iconTone={index % 2 === 0 ? 'red' : 'blue'}
+                variant="row"
+                isLast={index === rebates.length - 1}
+                onPress={() => void openExternalUrl(rebate.url)}
+              />
+            ))}
+          </ListGroup>
+        ) : benefits.loading && !benefits.data ? (
+          <RebatesSkeleton />
+        ) : null}
+      </AnimatedCard>
     </AppScreen>
+  );
+}
+
+function RebatesSkeleton() {
+  return (
+    <SkeletonReveal label="Loading rebates">
+      <SkeletonListGroup
+        rows={1}
+        titleLines={1}
+        subtitleLines={2}
+        trailing="meta-chevron"
+      />
+    </SkeletonReveal>
   );
 }

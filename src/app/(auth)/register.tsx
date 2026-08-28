@@ -1,78 +1,313 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, Text } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { BackHandler, Pressable, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { Check } from 'lucide-react-native';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
 import { TextInput } from '../../components/ui/TextInput';
 import { ErrorState } from '../../components/ui/StateViews';
 import { AuthShell } from '../../features/auth/AuthShell';
 import { useAuth } from '../../features/auth/AuthProvider';
+import { useAuthViewport } from '../../features/auth/AuthViewport';
+import {
+  authMotion,
+  standardLayoutTransition,
+} from '../../lib/motion';
+import { colors } from '../../lib/theme/theme';
+
+type AccountType = 'PROSPECT' | 'SALES_MANAGER';
+type StageDirection = 'initial' | 'forward' | 'back';
 
 export default function RegisterScreen() {
-  const { registerFromInvite } = useAuth();
-  const [token, setToken] = useState('prospect-demo-token');
+  const params = useLocalSearchParams<{ token?: string }>();
+  const { getInviteDetails, registerFromInvite } = useAuth();
+  const { resetViewport, setBrandVisible } = useAuthViewport();
+  const initialToken = params.token ?? (__DEV__ ? 'prospect-demo-token' : '');
+  const [token, setToken] = useState(initialToken);
+  const [accountType, setAccountType] = useState<AccountType | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [companyName, setCompanyName] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [validatingInvite, setValidatingInvite] = useState(false);
+  const [creatingAccount, setCreatingAccount] = useState(false);
+  const [stageDirection, setStageDirection] =
+    useState<StageDirection>('initial');
   const [error, setError] = useState<string | null>(null);
+  const checkedDeepLink = useRef(false);
+  const returningToLogin = useRef(false);
+
+  const validateInvite = useCallback(
+    async (inviteToken = token) => {
+      setValidatingInvite(true);
+      setError(null);
+      try {
+        const cleanToken = inviteToken.trim();
+        const details = await getInviteDetails(cleanToken);
+        resetViewport();
+        setStageDirection('forward');
+        setToken(cleanToken);
+        setBrandVisible(false);
+        setAccountType(details.accountType);
+      } catch (caught) {
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : 'Unable to verify invitation',
+        );
+      } finally {
+        setValidatingInvite(false);
+      }
+    },
+    [getInviteDetails, resetViewport, token],
+  );
+
+  useEffect(() => {
+    if (!params.token || checkedDeepLink.current) {
+      return;
+    }
+    checkedDeepLink.current = true;
+    void validateInvite(params.token);
+  }, [params.token, validateInvite]);
 
   const submit = async () => {
-    setLoading(true);
+    if (!accountType) {
+      return;
+    }
+
+    setCreatingAccount(true);
     setError(null);
     try {
       await registerFromInvite({
+        accountType,
         token,
         email,
         password,
         firstName,
         lastName,
-        phone,
-        companyName,
+        phone: accountType === 'PROSPECT' ? phone : undefined,
+        companyName: accountType === 'PROSPECT' ? companyName : undefined,
+        termsAccepted,
       });
-      router.replace('/prospect');
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Unable to register');
     } finally {
-      setLoading(false);
+      setCreatingAccount(false);
     }
   };
 
+  const resetInvite = () => {
+    resetViewport();
+    setBrandVisible(true);
+    setStageDirection('back');
+    setError(null);
+    setAccountType(null);
+  };
+
+  const returnToLogin = useCallback(() => {
+    if (returningToLogin.current) {
+      return;
+    }
+    returningToLogin.current = true;
+    resetViewport();
+    setBrandVisible(true);
+    setStageDirection('initial');
+    router.dismissTo({
+      pathname: '/login',
+      params: { motion: 'back' },
+    });
+  }, [resetViewport]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        returnToLogin();
+        return true;
+      },
+    );
+    return () => subscription.remove();
+  }, [returnToLogin]);
+
   return (
-    <AuthShell title="Prospect Registration" subtitle="Hercules Honors Rewards">
-      {error ? <ErrorState message={error} /> : null}
-      <TextInput label="Invite or QR Token" value={token} onChangeText={setToken} />
-      <TextInput
-        label="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-      />
-      <TextInput
-        label="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      <TextInput label="First Name" value={firstName} onChangeText={setFirstName} />
-      <TextInput label="Last Name" value={lastName} onChangeText={setLastName} />
-      <TextInput
-        label="Phone"
-        value={phone}
-        onChangeText={setPhone}
-        keyboardType="phone-pad"
-      />
-      <TextInput
-        label="Company Name"
-        value={companyName}
-        onChangeText={setCompanyName}
-      />
-      <PrimaryButton label="Create Account" onPress={submit} loading={loading} />
-      <Pressable onPress={() => router.push('/login')} className="items-center py-2">
-        <Text className="font-bold text-hercules-blue">Back to sign in</Text>
-      </Pressable>
-    </AuthShell>
+    <Animated.View
+      collapsable={false}
+      entering={authMotion.forwardIn}
+      className="pb-3 pt-4"
+    >
+      {!accountType ? (
+        <Animated.View
+          key="invitation-stage"
+          collapsable={false}
+          entering={
+            stageDirection === 'back' ? authMotion.backIn : undefined
+          }
+          layout={standardLayoutTransition}
+          className="w-full"
+        >
+          <AuthShell
+            variant="login"
+            title="Set up your account"
+            subtitle="Enter the code from your invitation."
+          >
+            <View>
+              {error ? <ErrorState message={error} /> : null}
+              <TextInput
+                label="Invitation Code"
+                value={token}
+                onChangeText={setToken}
+                autoCapitalize="none"
+              />
+              <View className="mt-6">
+                <PrimaryButton
+                  label="Continue"
+                  onPress={() => void validateInvite()}
+                  loading={validatingInvite}
+                  disabled={!token.trim()}
+                  shape="rounded"
+                />
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                onPress={returnToLogin}
+                className="mt-4 min-h-11 items-center justify-center px-2"
+              >
+                <Text className="text-center text-[15px] font-bold leading-5 text-hercules-blue">
+                  Back to sign in
+                </Text>
+              </Pressable>
+            </View>
+          </AuthShell>
+        </Animated.View>
+      ) : (
+        <Animated.View
+          key={`account-stage-${accountType}`}
+          collapsable={false}
+          entering={authMotion.forwardIn}
+          layout={standardLayoutTransition}
+          className="w-full"
+        >
+          <AuthShell
+            variant="form"
+            title="Create your account"
+            subtitle={
+              accountType === 'PROSPECT'
+                ? 'Complete your business profile.'
+                : 'Create your team account.'
+            }
+            onBack={resetInvite}
+          >
+            <View>
+              {error ? <ErrorState message={error} /> : null}
+              <View className="gap-3">
+                <TextInput
+                  label="Email"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+                <TextInput
+                  label="Password"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                />
+                <TextInput
+                  label="First Name"
+                  value={firstName}
+                  onChangeText={setFirstName}
+                />
+                <TextInput
+                  label="Last Name"
+                  value={lastName}
+                  onChangeText={setLastName}
+                />
+                {accountType === 'PROSPECT' ? (
+                  <>
+                    <TextInput
+                      label="Phone (optional)"
+                      value={phone}
+                      onChangeText={setPhone}
+                      keyboardType="phone-pad"
+                    />
+                    <TextInput
+                      label="Company Name"
+                      value={companyName}
+                      onChangeText={setCompanyName}
+                    />
+                  </>
+                ) : null}
+              </View>
+              <View className="mt-5 gap-2">
+                <Pressable
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: termsAccepted }}
+                  onPress={() => setTermsAccepted((accepted) => !accepted)}
+                  className="flex-row items-start gap-3 py-1"
+                >
+                  <View
+                    className={`mt-0.5 h-5 w-5 items-center justify-center rounded border ${
+                      termsAccepted
+                        ? 'border-hercules-blue bg-hercules-blue'
+                        : 'border-hercules-blue/40 bg-hercules-white'
+                    }`}
+                  >
+                    {termsAccepted ? (
+                      <Check size={14} color={colors.white} strokeWidth={3} />
+                    ) : null}
+                  </View>
+                  <Text className="flex-1 text-sm leading-5 text-hercules-muted">
+                    I agree to the Hercules Honors Rewards Terms of Use and
+                    acknowledge the Privacy Notice.
+                  </Text>
+                </Pressable>
+                <View className="flex-row gap-4 pl-8">
+                  <Pressable
+                    accessibilityRole="link"
+                    onPress={() => router.push('/terms')}
+                    className="min-h-11 justify-center"
+                  >
+                    <Text className="text-sm font-bold text-hercules-blue">
+                      Read Terms
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="link"
+                    onPress={() => router.push('/privacy')}
+                    className="min-h-11 justify-center"
+                  >
+                    <Text className="text-sm font-bold text-hercules-blue">
+                      Read Privacy Notice
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+              <View className="mt-6">
+                <PrimaryButton
+                  label="Create Account"
+                  onPress={submit}
+                  loading={creatingAccount}
+                  disabled={!termsAccepted}
+                  shape="rounded"
+                />
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                onPress={returnToLogin}
+                className="mt-4 min-h-11 items-center justify-center px-2"
+              >
+                <Text className="text-center text-[15px] font-bold leading-5 text-hercules-blue">
+                  Back to sign in
+                </Text>
+              </Pressable>
+            </View>
+          </AuthShell>
+        </Animated.View>
+      )}
+    </Animated.View>
   );
 }

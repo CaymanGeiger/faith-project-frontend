@@ -8,20 +8,14 @@ import {
   prospectNavItems,
   prospectQuickLinks,
 } from '../../components/layout/navigation';
-import { LoadingState } from '../../components/ui/StateViews';
 import { useAuth } from '../../features/auth/AuthProvider';
 
 export default function ProspectLayout() {
   const { user, loading } = useAuth();
   const pathname = usePathname();
-  const gettingStartedOpen = pathname === '/prospect/getting-started';
 
   if (loading) {
-    return (
-      <View className="flex-1 justify-center bg-hercules-white px-5">
-        <LoadingState label="Opening prospect portal" />
-      </View>
-    );
+    return <View className="flex-1 bg-hercules-white" />;
   }
 
   if (!user) {
@@ -41,9 +35,27 @@ export default function ProspectLayout() {
           messagesHref="/prospect/messages"
         />
         <View className="flex-1">
-          <Stack screenOptions={{ headerShown: false }} />
+          <Stack
+            screenOptions={{
+              animation: 'none',
+              gestureEnabled: true,
+              headerShown: false,
+            }}
+          >
+            <Stack.Screen name="prospect/index" />
+            <Stack.Screen name="prospect/already-a-dealer" />
+            <Stack.Screen
+              name="prospect/resources"
+            />
+            <Stack.Screen
+              name="prospect/classes"
+            />
+            <Stack.Screen
+              name="prospect/account"
+            />
+          </Stack>
         </View>
-        {gettingStartedOpen ? null : <BottomNav items={prospectNavItems} />}
+        <BottomNav items={prospectNavItems} />
       </View>
     </SafeAreaView>
   );

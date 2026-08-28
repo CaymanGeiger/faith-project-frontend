@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { conversationsApi } from '../../lib/api/endpoints';
 import { Conversation, Message, User } from '../../lib/api/types';
 import {
   disconnectMessagingSocket,
   getMessagingSocket,
+  MessagingAcknowledgement,
   MessagingSocket,
+  SendMessageAcknowledgement,
 } from '../../lib/messagingSocket';
 
 export function useMessagingSocket(token: string | null) {
@@ -69,65 +71,207 @@ export function useConversationMessages(
   conversationId: string | null,
   socket: MessagingSocket | null,
 ) {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setMessages([]);
-    setError(null);
-  }, [conversationId]);
+  const [state, setState] = useState<{
+    conversationId: string | null;
+    messages: Message[];
+    error: string | null;
+  }>({
+    conversationId: null,
+    messages: [],
+    error: null,
+  });
+  const [loadingConversationId, setLoadingConversationId] = useState<
+    string | null
+  >(null);
+  const [readyConversationId, setReadyConversationId] = useState<string | null>(
+    null,
+  );
+  const requestSequence = useRef(0);
 
   const load = useCallback(async () => {
-    if (!conversationId) return;
-    setLoading(true);
-    setError(null);
+    const targetConversationId = conversationId;
+    if (!targetConversationId) return;
+
+    const requestId = ++requestSequence.current;
+    setLoadingConversationId(targetConversationId);
+    setState((current) =>
+      current.conversationId === targetConversationId
+        ? { ...current, error: null }
+        : current,
+    );
+
     try {
-      const response = await conversationsApi.messages(conversationId);
-      setMessages(response.messages);
+      const response = await conversationsApi.messages(targetConversationId);
+      if (requestId !== requestSequence.current) return;
+      setState({
+        conversationId: targetConversationId,
+        messages: response.messages,
+        error: null,
+      });
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Unable to load');
+      if (requestId !== requestSequence.current) return;
+      setState((current) => ({
+        conversationId: targetConversationId,
+        messages:
+          current.conversationId === targetConversationId
+            ? current.messages
+            : [],
+        error: caught instanceof Error ? caught.message : 'Unable to load',
+      }));
     } finally {
-      setLoading(false);
+      if (requestId === requestSequence.current) {
+        setLoadingConversationId(null);
+      }
     }
   }, [conversationId]);
 
   useEffect(() => {
+    if (!conversationId) {
+      requestSequence.current += 1;
+      setLoadingConversationId(null);
+      setReadyConversationId(null);
+      return;
+    }
+
     void load();
-  }, [load]);
+    return () => {
+      requestSequence.current += 1;
+    };
+  }, [conversationId, load]);
 
   useEffect(() => {
     if (!socket || !conversationId) return;
 
-    socket.emit('conversation:join', { conversationId });
+    setReadyConversationId(null);
+    const join = () => {
+      socket.emit(
+        'conversation:join',
+        { conversationId },
+        (result: MessagingAcknowledgement) => {
+          if (!result.ok) {
+            setState((current) => ({
+              ...current,
+              error: result.message,
+            }));
+          }
+        },
+      );
+    };
+    const onJoined = (payload: { conversationId: string }) => {
+      if (payload.conversationId === conversationId) {
+        setReadyConversationId(conversationId);
+      }
+    };
+    const onMessagingError = (payload: { message: string }) => {
+      setState((current) => ({ ...current, error: payload.message }));
+    };
     const onMessage = (message: Message) => {
       if (message.conversationId !== conversationId) return;
-      setMessages((current) => {
-        if (current.some((item) => item.id === message.id)) return current;
-        return [...current, message];
+      setState((current) => {
+        const currentMessages =
+          current.conversationId === conversationId ? current.messages : [];
+        if (currentMessages.some((item) => item.id === message.id)) {
+          return current;
+        }
+        return {
+          conversationId,
+          messages: [...currentMessages, message],
+          error: null,
+        };
       });
     };
 
+    socket.on('conversation:joined', onJoined);
+    socket.on('messaging:error', onMessagingError);
     socket.on('message:created', onMessage);
+    socket.on('connect', join);
+    if (socket.connected) {
+      join();
+    }
     return () => {
-      socket.emit('conversation:leave', { conversationId });
+      if (socket.connected) {
+        socket.emit('conversation:leave', { conversationId });
+      }
+      socket.off('connect', join);
+      socket.off('conversation:joined', onJoined);
+      socket.off('messaging:error', onMessagingError);
       socket.off('message:created', onMessage);
     };
   }, [conversationId, socket]);
 
   const sendMessage = useCallback(
-    (body: string) => {
-      if (!socket || !conversationId) return;
-      socket.emit('message:send', {
-        conversationId,
-        body,
-        clientMessageId: `mobile-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    async (body: string) => {
+      if (
+        !socket ||
+        !conversationId ||
+        !socket.connected ||
+        readyConversationId !== conversationId
+      ) {
+        const error = new Error('Connecting to secure chat. Please try again in a moment.');
+        setState((current) => ({ ...current, error: error.message }));
+        throw error;
+      }
+
+      const clientMessageId = `mobile-${Date.now()}-${Math.random()
+        .toString(16)
+        .slice(2)}`;
+      setState((current) => ({ ...current, error: null }));
+
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          const error = new Error('Message delivery timed out. Please try again.');
+          setState((current) => ({ ...current, error: error.message }));
+          reject(error);
+        }, 10_000);
+
+        socket.emit(
+          'message:send',
+          { conversationId, body, clientMessageId },
+          (result: SendMessageAcknowledgement) => {
+            clearTimeout(timeout);
+            if (!result.ok) {
+              const error = new Error(result.message);
+              setState((current) => ({ ...current, error: error.message }));
+              reject(error);
+              return;
+            }
+
+            setState((current) => {
+              const messages =
+                current.conversationId === conversationId ? current.messages : [];
+              if (messages.some((message) => message.id === result.message.id)) {
+                return { ...current, error: null };
+              }
+              return {
+                conversationId,
+                messages: [...messages, result.message],
+                error: null,
+              };
+            });
+            resolve();
+          },
+        );
       });
     },
-    [conversationId, socket],
+    [conversationId, readyConversationId, socket],
   );
 
-  return { messages, loading, error, reload: load, sendMessage };
+  const showingCurrentConversation = state.conversationId === conversationId;
+  const loading = Boolean(
+    conversationId &&
+      (loadingConversationId === conversationId ||
+        !showingCurrentConversation),
+  );
+
+  return {
+    messages: showingCurrentConversation ? state.messages : [],
+    loading,
+    error: showingCurrentConversation ? state.error : null,
+    reload: load,
+    sendMessage,
+    readyToSend:
+      Boolean(socket?.connected) && readyConversationId === conversationId,
+  };
 }
 
 export function useTypingIndicator(
@@ -136,6 +280,10 @@ export function useTypingIndicator(
   currentUser: User | null,
 ) {
   const [typingUserIds, setTypingUserIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    setTypingUserIds([]);
+  }, [conversationId]);
 
   useEffect(() => {
     if (!socket || !conversationId) return;

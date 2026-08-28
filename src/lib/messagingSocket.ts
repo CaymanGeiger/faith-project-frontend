@@ -16,14 +16,25 @@ export type MessagingServerEvents = {
   'messaging:error': (payload: { code: string; message: string }) => void;
 };
 
+export type MessagingAcknowledgement =
+  | { ok: true }
+  | { ok: false; message: string };
+
+export type SendMessageAcknowledgement =
+  | { ok: true; message: Message }
+  | { ok: false; message: string };
+
 export type MessagingClientEvents = {
-  'conversation:join': (payload: { conversationId: string }) => void;
+  'conversation:join': (
+    payload: { conversationId: string },
+    callback?: (result: MessagingAcknowledgement) => void,
+  ) => void;
   'conversation:leave': (payload: { conversationId: string }) => void;
   'message:send': (payload: {
     conversationId: string;
     clientMessageId: string;
     body: string;
-  }) => void;
+  }, callback?: (result: SendMessageAcknowledgement) => void) => void;
   'message:read': (payload: { conversationId: string; lastReadAt: string }) => void;
   'typing:start': (payload: { conversationId: string }) => void;
   'typing:stop': (payload: { conversationId: string }) => void;

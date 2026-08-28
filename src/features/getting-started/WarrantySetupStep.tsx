@@ -58,8 +58,8 @@ export function WarrantySetupStep({
   return (
     <GettingStartedStepCard
       icon={ShieldCheck}
-      title="Confirm JB Warranties Signup"
-      description="This partner signup is required within 30 days of joining the Hercules dealer program."
+      title="Record Your JB Warranties Setup"
+      description="After completing setup with JB Warranties, record that completion here for your Hercules onboarding."
     >
       <View className="gap-4">
         {error ? <ErrorState message={error} /> : null}
@@ -71,13 +71,13 @@ export function WarrantySetupStep({
               strokeWidth={2.6}
             />
             <Text className="flex-1 text-lg font-extrabold text-hercules-ink">
-              {complete ? 'Signup confirmed' : 'Complete partner registration'}
+              {complete ? 'Completion recorded' : 'Confirm completed setup'}
             </Text>
           </View>
           <Text className="text-sm leading-5 text-hercules-muted">
-            Confirm this step only after your JB Warranties signup has been
-            submitted. Your Hercules sales manager can provide partner-access
-            details if needed.
+            Confirm this only after you complete the JB Warranties process.
+            Hercules can provide partner-access details if needed. This app does
+            not submit the partner registration for you.
           </Text>
           {todo ? (
             <Text className="text-xs font-extrabold text-hercules-blue">

@@ -58,9 +58,9 @@ export function MarketingSetupStep({
       await onComplete();
     } catch (caught) {
       setError(
-        caught instanceof Error
+          caught instanceof Error
           ? caught.message
-          : 'Unable to submit consultation availability',
+          : 'Unable to save consultation availability',
       );
     } finally {
       setSaving(false);
@@ -77,7 +77,7 @@ export function MarketingSetupStep({
 
   useLayoutEffect(() => {
     onActionChange({
-      label: consultation.submittedAt ? 'Update & Continue' : 'Submit & Continue',
+      label: consultation.submittedAt ? 'Update & Continue' : 'Save & Continue',
       onPress: () => void save(),
       onSaveForLater: saveForLater,
       loading: saving,
@@ -87,8 +87,8 @@ export function MarketingSetupStep({
   return (
     <GettingStartedStepCard
       icon={Megaphone}
-      title="Plan Your Marketing Consultation"
-      description="Share three times that work for your required onboarding consultation. Hercules will use these preferences for the Lead Smart handoff."
+      title="Share Marketing Availability"
+      description="Share three times that work for you, then contact Hercules about available marketing and business-growth support."
     >
       <View className="gap-4">
         {error ? <ErrorState message={error} /> : null}

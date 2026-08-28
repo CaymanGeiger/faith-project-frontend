@@ -1,5 +1,7 @@
 import { PropsWithChildren } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Keyboard, Platform, ScrollView, View } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { pageEnterMotion } from '../../lib/motion';
 import { QuickLink } from './QuickLinksMenu';
 
 type AppScreenProps = PropsWithChildren<{
@@ -11,17 +13,24 @@ type AppScreenProps = PropsWithChildren<{
 
 export function AppScreen({
   scroll = true,
-  contentContainerClassName = 'gap-4 px-5 pb-28 pt-4',
+  contentContainerClassName = 'gap-6 px-5 pb-8 pt-6',
   children,
 }: AppScreenProps) {
   const backgroundClass = 'bg-hercules-white';
 
   return (
-    <View className={`flex-1 ${backgroundClass}`}>
+    <Animated.View
+      entering={pageEnterMotion}
+      className={`flex-1 ${backgroundClass}`}
+    >
       {scroll ? (
         <ScrollView
           className="flex-1"
           contentContainerClassName={contentContainerClassName}
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          keyboardShouldPersistTaps="handled"
+          onScrollBeginDrag={Keyboard.dismiss}
+          showsVerticalScrollIndicator={false}
         >
           {children}
         </ScrollView>
@@ -30,6 +39,6 @@ export function AppScreen({
           {children}
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 }

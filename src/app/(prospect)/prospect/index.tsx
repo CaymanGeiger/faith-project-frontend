@@ -1,129 +1,365 @@
-import { router } from 'expo-router';
-import { BookOpen, CalendarDays, Gift, LifeBuoy } from 'lucide-react-native';
-import { Text, View } from 'react-native';
+import {
+  BadgeDollarSign,
+  BookOpen,
+  Gift,
+  GraduationCap,
+  Megaphone,
+  MessageCircle,
+  PackageOpen,
+  ShieldCheck,
+} from 'lucide-react-native';
+import { View } from 'react-native';
 import { AppScreen } from '../../../components/layout/AppScreen';
 import { prospectQuickLinks } from '../../../components/layout/navigation';
 import { AnimatedCard } from '../../../components/ui/AnimatedCard';
-import { Badge } from '../../../components/ui/Badge';
-import { ErrorState, LoadingState } from '../../../components/ui/StateViews';
-import { GettingStartedCard } from '../../../features/getting-started/GettingStartedCard';
+import { AsyncContent } from '../../../components/ui/AsyncContent';
+import { CoBrandLockup } from '../../../components/ui/CoBrandLockup';
+import { ListGroup } from '../../../components/ui/ListGroup';
+import { ListItem } from '../../../components/ui/ListItem';
+import { RelatedLinks } from '../../../components/ui/RelatedLinks';
+import { SectionHeader } from '../../../components/ui/SectionHeader';
+import { SkeletonReveal } from '../../../components/ui/SkeletonReveal';
+import {
+  SkeletonLine,
+  SkeletonListCards,
+  SkeletonSectionHeader,
+} from '../../../components/ui/SkeletonPrimitives';
+import { ErrorState } from '../../../components/ui/StateViews';
+import { deriveDealerJourney } from '../../../features/prospect/dealerJourney';
+import { NextStepCard } from '../../../features/prospect/NextStepCard';
 import { ProspectProfileCard } from '../../../features/prospect/ProspectProfileCard';
 import { QuickActionGrid } from '../../../features/prospect/QuickActionGrid';
-import { accountApi, classesApi, todosApi } from '../../../lib/api/endpoints';
-import { formatShortDate } from '../../../lib/format';
+import { TrainingHomeCard } from '../../../features/prospect/TrainingHomeCard';
+import { accountApi, todosApi } from '../../../lib/api/endpoints';
 import { useAsyncData } from '../../../lib/hooks/useAsyncData';
+
+const homeQuickActionSkeletonWidths = [
+  'w-[49px]',
+  'w-[49px]',
+  'w-[50px]',
+  'w-[29px]',
+] as const;
 
 export default function ProspectHomeScreen() {
   const dashboard = useAsyncData(async () => {
-    const [me, onboarding, todos, classes] = await Promise.all([
+    const [me, onboarding, todos] = await Promise.all([
       accountApi.me(),
       accountApi.onboarding(),
       todosApi.list(),
-      classesApi.list(),
     ]);
-    return { me, onboarding, todos, classes };
+    return { me, onboarding, todos };
   }, []);
+
+  const journey = dashboard.data
+    ? deriveDealerJourney({
+        user: dashboard.data.me.user,
+        summary: dashboard.data.onboarding.summary,
+        todos: dashboard.data.todos.todos,
+      })
+    : null;
 
   return (
     <AppScreen
       title="LG Dealer Portal"
       quickLinks={prospectQuickLinks}
-      contentContainerClassName="gap-4 px-[23px] pb-28 pt-4"
+      contentContainerClassName="gap-4 px-[23px] pb-8 pt-4"
     >
-      {dashboard.loading ? <LoadingState label="Loading portal" /> : null}
-      {dashboard.error ? (
+      <CoBrandLockup variant="home" />
+
+      {dashboard.error && !dashboard.data ? (
         <ErrorState message={dashboard.error} onRetry={dashboard.reload} />
-      ) : null}
-      {dashboard.data ? (
-        <>
-          <AnimatedCard index={1}>
-            <ProspectProfileCard
-              user={dashboard.data.me.user}
-              companyName={dashboard.data.me.user.prospectProfile?.companyName}
-            />
-          </AnimatedCard>
+      ) : (
+        <AsyncContent
+          ready={Boolean(dashboard.data && journey)}
+          fallback={<ProspectHomeSkeleton />}
+          className="gap-4"
+        >
+          {dashboard.data && journey ? (
+            <>
+              <AnimatedCard index={1}>
+                <ProspectProfileCard
+                  user={dashboard.data.me.user}
+                  companyName={
+                    dashboard.data.me.user.prospectProfile?.companyName
+                  }
+                />
+              </AnimatedCard>
 
-          <AnimatedCard index={2}>
-            <QuickActionGrid
-              actions={[
-                { label: 'Tech Support', href: '/prospect/resources', icon: BookOpen, tone: 'red' },
-                { label: 'Benefits', href: '/prospect/benefits', icon: Gift, tone: 'blue' },
-                { label: 'Classes', href: '/prospect/classes', icon: CalendarDays, tone: 'red' },
-                { label: 'Support', href: '/prospect/messages', icon: LifeBuoy, tone: 'blue' },
-              ]}
-            />
-          </AnimatedCard>
+              <AnimatedCard index={2}>
+                <NextStepCard
+                  step={{
+                    title: 'Getting Started',
+                    description:
+                      journey.completed === journey.total
+                        ? 'Review your completed dealer setup and keep your information current.'
+                        : 'Continue your guided path through training, activation, and your first LG system.',
+                    support: `${journey.completed} of ${journey.total} milestones complete.`,
+                    href: '/prospect/getting-started',
+                  }}
+                />
+              </AnimatedCard>
 
-          <AnimatedCard index={3}>
-            <GettingStartedCard
-              completed={gettingStartedCompletionCount(dashboard.data)}
-              total={5}
-              onPress={() => router.push('/prospect/getting-started')}
-            />
-          </AnimatedCard>
+              <AnimatedCard index={3} className="gap-3">
+                <SectionHeader title="Quick Access" />
+                <QuickActionGrid
+                  actions={[
+                    {
+                      label: 'Support',
+                      href: '/prospect/resources',
+                      icon: BookOpen,
+                      tone: 'red',
+                    },
+                    {
+                      label: 'Training',
+                      href: '/prospect/classes',
+                      icon: GraduationCap,
+                      tone: 'blue',
+                    },
+                    {
+                      label: 'Benefits',
+                      href: '/prospect/benefits',
+                      icon: ShieldCheck,
+                      tone: 'red',
+                    },
+                    {
+                      label: 'Chat',
+                      href: '/prospect/messages',
+                      icon: MessageCircle,
+                      tone: 'blue',
+                    },
+                  ]}
+                />
+              </AnimatedCard>
 
-          <AnimatedCard index={4} className="flex-row gap-4">
-            <View className="flex-1 gap-2 rounded-[20px] border border-hercules-blue/20 bg-hercules-white p-4">
-              <Text className="text-sm font-bold text-hercules-muted">
-                Upcoming Classes
-              </Text>
-              <Text className="text-2xl font-extrabold text-hercules-ink">
-                {dashboard.data.classes.classes.length} Available
-              </Text>
-              {dashboard.data.classes.classes[0] ? (
-                <Text className="text-xs font-bold text-hercules-blue">
-                  Next {formatShortDate(dashboard.data.classes.classes[0].startsAt)}
-                </Text>
-              ) : null}
-            </View>
-            <View className="flex-1 gap-2 rounded-[20px] border border-hercules-blue/20 bg-hercules-white p-4">
-              <Text className="text-sm font-bold text-hercules-muted">
-                Certifications
-              </Text>
-              <Text className="text-2xl font-extrabold text-hercules-ink">
-                {dashboard.data.onboarding.profile.certificationStatus === 'CERTIFIED'
-                  ? 'Active'
-                  : 'In Progress'}
-              </Text>
-              <Badge
-                label={dashboard.data.onboarding.profile.certificationStatus}
-                tone="blue"
-              />
-            </View>
-          </AnimatedCard>
-        </>
-      ) : null}
+              <AnimatedCard index={4}>
+                <TrainingHomeCard
+                  selected={
+                    dashboard.data.onboarding.summary.trainingSelected
+                  }
+                  completed={
+                    dashboard.data.onboarding.summary.trainingCompleted
+                  }
+                  dueAt={
+                    dashboard.data.todos.todos.find(
+                      (todo) => todo.type === 'CLASS_SIGNUP',
+                    )?.dueAt
+                  }
+                />
+              </AnimatedCard>
+
+              <AnimatedCard index={5}>
+                <RelatedLinks
+                  title="Benefits & Resources"
+                  links={[
+                    {
+                      title: 'Dealer Benefits',
+                      description:
+                        'Explore pricing, rewards, leads, warranty, and business support.',
+                      href: '/prospect/benefits',
+                      icon: Gift,
+                      tone: 'red',
+                    },
+                    {
+                      title: 'Rebates',
+                      description:
+                        'Review current program savings and available offers.',
+                      href: '/prospect/rebates',
+                      icon: BadgeDollarSign,
+                      tone: 'blue',
+                    },
+                  ]}
+                />
+              </AnimatedCard>
+
+              <AnimatedCard index={6} className="gap-3">
+                <SectionHeader title="Offers & Updates" />
+                <ListGroup>
+                  <ListItem
+                    title="Product Updates & Launches"
+                    subtitle="Stay current on LG products, resources, and launch invitations."
+                    meta="Ongoing"
+                    icon={PackageOpen}
+                    iconTone="blue"
+                    variant="row"
+                  />
+                  <ListItem
+                    title="Promotions & Training"
+                    subtitle="Watch for new offers and continuing training opportunities."
+                    meta="Ongoing"
+                    icon={Megaphone}
+                    iconTone="red"
+                    variant="row"
+                    isLast
+                  />
+                </ListGroup>
+              </AnimatedCard>
+            </>
+          ) : null}
+        </AsyncContent>
+      )}
     </AppScreen>
   );
 }
 
-type DashboardData = {
-  me: Awaited<ReturnType<typeof accountApi.me>>;
-  onboarding: Awaited<ReturnType<typeof accountApi.onboarding>>;
-  todos: Awaited<ReturnType<typeof todosApi.list>>;
-  classes: Awaited<ReturnType<typeof classesApi.list>>;
-};
+function ProspectHomeSkeleton() {
+  return (
+    <SkeletonReveal
+      label="Preparing your dashboard"
+      className="gap-4"
+    >
+      <View className="gap-4 rounded-[20px] bg-hercules-red/15 px-5 py-6">
+        <View className="gap-2">
+          <View className="h-4 justify-center">
+            <SkeletonLine className="h-3 w-[206px]" />
+          </View>
+          <View className="h-8 justify-center">
+            <SkeletonLine className="h-7 w-[199px]" />
+          </View>
+          <View>
+            <View className="h-5 justify-center">
+              <SkeletonLine className="h-4 w-[330px]" subtle />
+            </View>
+            <View className="h-5 justify-center">
+              <SkeletonLine className="h-4 w-[54px]" subtle />
+            </View>
+          </View>
+          <View className="h-5 justify-center">
+            <SkeletonLine className="h-3 w-[161px]" subtle />
+          </View>
+        </View>
+      </View>
 
-function gettingStartedCompletionCount(data: DashboardData) {
-  const profile = data.me.user.prospectProfile;
-  const summary = data.onboarding.summary;
-  const profileComplete = Boolean(
-    data.me.user.email &&
-      data.me.user.firstName &&
-      data.me.user.lastName &&
-      data.me.user.phone &&
-      profile?.companyName,
-  );
-  const warrantyComplete = data.todos.todos.some(
-    (todo) =>
-      todo.type === 'JB_WARRANTIES' && todo.status === 'COMPLETED',
-  );
+      <View className="gap-4 rounded-[20px] bg-hercules-blue/15 px-5 py-5">
+        <View className="flex-row items-center justify-between gap-3">
+          <View className="flex-row items-center gap-2">
+            <View className="h-4 w-4 rounded-full bg-hercules-blue/15" />
+            <SkeletonLine className="h-3 w-[120px]" />
+          </View>
+          <SkeletonLine className="h-3 w-[104px]" subtle />
+        </View>
+        <View className="gap-2">
+          <View className="h-7 justify-center">
+            <SkeletonLine className="h-6 w-[278px]" />
+          </View>
+          <View>
+            <View className="h-5 justify-center">
+              <SkeletonLine className="h-3 w-[303px]" subtle />
+            </View>
+            <View className="h-5 justify-center">
+              <SkeletonLine className="h-3 w-[168px]" subtle />
+            </View>
+          </View>
+        </View>
+        <View className="flex-row items-center justify-between gap-3 border-t border-hercules-blue/10 pt-4">
+          <View className="min-w-0 flex-1">
+            <View className="h-4 justify-center">
+              <SkeletonLine className="h-3 w-[220px]" subtle />
+            </View>
+            <View className="h-4 justify-center">
+              <SkeletonLine className="h-3 w-[85px]" subtle />
+            </View>
+          </View>
+          <SkeletonLine className="h-4 w-20" />
+        </View>
+      </View>
 
-  return [
-    profileComplete,
-    Number(summary.equipmentRegistrations ?? 0) > 0,
-    Number(summary.classEnrollments ?? 0) > 0,
-    warrantyComplete,
-    summary.marketingConsultationStatus !== 'NOT_SUBMITTED',
-  ].filter(Boolean).length;
+      <View className="gap-3">
+        <SkeletonSectionHeader widthClassName="w-[116px]" />
+        <View className="flex-row justify-between gap-3 border-y border-hercules-blue/10 py-5">
+          {Array.from({ length: 4 }, (_, index) => (
+            <View
+              key={`home-quick-action-skeleton-${index}`}
+              className="flex-1 items-center gap-2"
+            >
+              <View
+                className={`h-14 w-14 rounded-[18px] ${
+                  index % 2 === 0
+                    ? 'bg-hercules-red/15'
+                    : 'bg-hercules-blue/15'
+              }`}
+              />
+              <View className="h-4 justify-center">
+                <SkeletonLine
+                  className={`h-3 ${homeQuickActionSkeletonWidths[index]}`}
+                  subtle
+                />
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <View className="gap-4 rounded-[16px] border border-hercules-blue/15 bg-hercules-white p-5">
+        <View className="flex-row items-start gap-4">
+          <View className="h-11 w-11 rounded-[13px] bg-hercules-red/15" />
+          <View className="min-w-0 flex-1 gap-1">
+            <View className="h-4 justify-center">
+              <SkeletonLine className="h-3 w-[92px]" />
+            </View>
+            <View className="h-6 justify-center">
+              <SkeletonLine className="h-5 w-[210px]" />
+            </View>
+            <View>
+              <View className="h-5 justify-center">
+                <SkeletonLine className="h-3 w-full" subtle />
+              </View>
+              <View className="h-5 justify-center">
+                <SkeletonLine className="h-3 w-2/3" subtle />
+              </View>
+            </View>
+          </View>
+        </View>
+        <View className="flex-row items-center justify-between gap-3 border-t border-hercules-blue/10 pt-4">
+          <SkeletonLine className="h-3 w-[96px]" subtle />
+          <SkeletonLine className="h-4 w-[104px]" />
+        </View>
+      </View>
+
+      <View className="gap-3">
+        <SkeletonSectionHeader widthClassName="w-[210px]" />
+        <SkeletonListCards
+          rows={2}
+          titleLines={1}
+          subtitleLines={2}
+          trailing="chevron"
+        />
+      </View>
+
+      <View className="gap-3">
+        <SkeletonSectionHeader widthClassName="w-[148px]" />
+        <View className="overflow-hidden rounded-[18px] border border-hercules-blue/15 bg-hercules-white">
+          {Array.from({ length: 2 }, (_, index) => (
+            <View
+              key={`home-offer-row-skeleton-${index}`}
+              className={`min-h-[76px] flex-row items-center gap-3 px-4 py-3 ${
+                index === 1 ? '' : 'border-b border-hercules-blue/10'
+              }`}
+            >
+              <View
+                className={`h-10 w-10 shrink-0 rounded-[12px] ${
+                  index === 0
+                    ? 'bg-hercules-blue/15'
+                    : 'bg-hercules-red/15'
+                }`}
+              />
+              <View className="min-w-0 flex-1 gap-1">
+                <View className="h-5 justify-center">
+                  <SkeletonLine className="h-4 w-4/5" />
+                </View>
+                <View>
+                  <View className="h-5 justify-center">
+                    <SkeletonLine className="h-3 w-3/5" subtle />
+                  </View>
+                  <View className="h-5 justify-center">
+                    <SkeletonLine className="h-3 w-2/5" subtle />
+                  </View>
+                </View>
+              </View>
+              <SkeletonLine className="h-3 w-[50px]" subtle />
+            </View>
+          ))}
+        </View>
+      </View>
+    </SkeletonReveal>
+  );
 }

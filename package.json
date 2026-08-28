@@ -7,9 +7,13 @@
     "clsx": "^2.1.1",
     "expo": "~54.0.0",
     "expo-constants": "~18.0.13",
+    "expo-image": "~3.0.11",
     "expo-linking": "~8.0.12",
     "expo-router": "~6.0.24",
+    "expo-secure-store": "~15.0.8",
+    "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
+    "expo-updates": "~29.0.19",
     "lucide-react-native": "^1.25.0",
     "nativewind": "^4.2.6",
     "react": "19.1.0",
@@ -32,12 +36,20 @@
     "typescript": "~5.9.2"
   },
   "scripts": {
+    "check": "npm run verify:release-source && npm run typecheck && npm run export:web",
+    "verify:release-source": "node ./scripts/verify-release-source.mjs",
+    "verify:store-config": "node ./scripts/verify-store-config.mjs",
+    "verify:production-config": "EAS_BUILD_PROFILE=production node ./scripts/verify-store-config.mjs",
+    "release:preflight": "npm run verify:release-source && npm run verify:production-config && npx expo config --type public",
+    "eas-build-pre-install": "node ./scripts/verify-store-config.mjs",
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web --port 8081",
+    "preexport:web": "node ./scripts/verify-web-config.mjs",
     "export:web": "expo export -p web",
-    "typecheck": "node --stack_size=16384 ./node_modules/typescript/bin/tsc --noEmit"
+    "typecheck": "node --stack_size=16384 ./node_modules/typescript/bin/tsc --noEmit",
+    "test:client": "node ./scripts/test-api-client.mjs"
   },
   "private": true
 }

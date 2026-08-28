@@ -8,19 +8,15 @@ import {
   managerNavItems,
   managerQuickLinks,
 } from '../../components/layout/navigation';
-import { LoadingState } from '../../components/ui/StateViews';
 import { useAuth } from '../../features/auth/AuthProvider';
+import { ManagerDataProvider } from '../../features/manager/ManagerDataProvider';
 
 export default function ManagerLayout() {
-  const { user, loading } = useAuth();
+  const { user, token, loading } = useAuth();
   const pathname = usePathname();
 
   if (loading) {
-    return (
-      <View className="flex-1 justify-center bg-hercules-white px-5">
-        <LoadingState label="Opening Hercules internal" />
-      </View>
-    );
+    return <View className="flex-1 bg-hercules-white" />;
   }
 
   if (!user) {
@@ -32,18 +28,37 @@ export default function ManagerLayout() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-hercules-red" edges={['top']}>
-      <View className="flex-1 bg-hercules-white">
-        <AppHeader
-          title={getManagerHeaderTitle(pathname)}
-          links={managerQuickLinks}
-          messagesHref="/manager/messages"
-        />
-        <View className="flex-1">
-          <Stack screenOptions={{ headerShown: false }} />
+    <ManagerDataProvider key={user.id} userId={user.id} token={token}>
+      <SafeAreaView className="flex-1 bg-hercules-red" edges={['top']}>
+        <View className="flex-1 bg-hercules-white">
+          <AppHeader
+            title={getManagerHeaderTitle(pathname)}
+            links={managerQuickLinks}
+            messagesHref="/manager/messages"
+          />
+          <View className="flex-1">
+            <Stack
+              screenOptions={{
+                animation: 'none',
+                gestureEnabled: true,
+                headerShown: false,
+              }}
+            >
+              <Stack.Screen name="manager/index" />
+              <Stack.Screen
+                name="manager/prospects"
+              />
+              <Stack.Screen
+                name="manager/messages"
+              />
+              <Stack.Screen
+                name="manager/account"
+              />
+            </Stack>
+          </View>
+          <BottomNav items={managerNavItems} />
         </View>
-        <BottomNav items={managerNavItems} />
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </ManagerDataProvider>
   );
 }

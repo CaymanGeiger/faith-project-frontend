@@ -1,13 +1,16 @@
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { router, usePathname } from 'expo-router';
-import { LucideIcon } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
 import Animated, {
   interpolateColor,
+  ReduceMotion,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { motionDuration, motionEasing } from '../../lib/motion';
 import { colors } from '../../lib/theme/theme';
 
 export type NavItem = {
@@ -22,10 +25,18 @@ type BottomNavProps = {
 
 export function BottomNav({ items }: BottomNavProps) {
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
 
   return (
-    <View className="absolute bottom-0 left-0 right-0 z-50 border-t border-hercules-blue bg-hercules-white px-3 pb-4 pt-2">
-      <View className="flex-row justify-around">
+    <View
+      className="z-50 bg-hercules-white px-4 pt-2"
+      style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+    >
+      <View
+        accessibilityRole="tablist"
+        className="min-h-[66px] flex-row gap-2 rounded-[28px] border border-hercules-blue/15 bg-hercules-white p-1.5"
+        style={styles.dock}
+      >
         {items.map((item) => (
           <BottomNavButton
             key={item.href}
@@ -48,8 +59,14 @@ function BottomNavButton({ item, active }: BottomNavButtonProps) {
   const Icon = item.icon;
 
   useEffect(() => {
-    progress.value = withTiming(active ? 1 : 0, { duration: 180 });
+    progress.value = withTiming(active ? 1 : 0, {
+      duration: motionDuration.micro,
+      easing: motionEasing.enter,
+      reduceMotion: ReduceMotion.System,
+    });
   }, [active, progress]);
+
+  const pressScale = useSharedValue(1);
 
   const activeIconStyle = useAnimatedStyle(() => ({
     opacity: progress.value,
@@ -60,8 +77,28 @@ function BottomNavButton({ item, active }: BottomNavButtonProps) {
   }));
 
   const labelStyle = useAnimatedStyle(() => ({
-    color: interpolateColor(progress.value, [0, 1], [colors.ink, colors.red]),
+    color: interpolateColor(progress.value, [0, 1], [colors.ink, colors.white]),
   }));
+
+  const pressStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pressScale.value }],
+  }));
+
+  const selectionStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      progress.value,
+      [0, 1],
+      ['rgba(206, 33, 39, 0)', colors.red],
+    ),
+  }));
+
+  const animatePress = (pressed: boolean) => {
+    pressScale.value = withTiming(pressed ? 0.96 : 1, {
+      duration: pressed ? motionDuration.pressIn : motionDuration.micro,
+      easing: pressed ? motionEasing.exit : motionEasing.enter,
+      reduceMotion: ReduceMotion.System,
+    });
+  };
 
   const navigate = () => {
     if (!active) {
@@ -70,29 +107,54 @@ function BottomNavButton({ item, active }: BottomNavButtonProps) {
   };
 
   return (
-    <Pressable
-      onPress={navigate}
-      className="h-16 w-[72px] items-center justify-center gap-1 rounded-[14px] active:opacity-70"
-    >
-      <View className="h-7 w-7 items-center justify-center">
-        <Animated.View
-          pointerEvents="none"
-          className="items-center justify-center"
-          style={[StyleSheet.absoluteFill, inactiveIconStyle]}
+    <Animated.View style={[styles.tabSurface, pressStyle, selectionStyle]}>
+      <Pressable
+        accessibilityLabel={item.label}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: active }}
+        onPress={navigate}
+        onPressIn={() => animatePress(true)}
+        onPressOut={() => animatePress(false)}
+        className="min-h-[54px] items-center justify-center gap-0.5 rounded-[20px] px-1 active:opacity-85"
+      >
+        <View className="h-6 w-7 items-center justify-center">
+          <Animated.View
+            pointerEvents="none"
+            className="items-center justify-center"
+            style={[StyleSheet.absoluteFill, inactiveIconStyle]}
+          >
+            <Icon size={22} color={colors.ink} strokeWidth={2.2} />
+          </Animated.View>
+          <Animated.View
+            pointerEvents="none"
+            className="items-center justify-center"
+            style={[StyleSheet.absoluteFill, activeIconStyle]}
+          >
+            <Icon size={22} color={colors.white} strokeWidth={2.6} />
+          </Animated.View>
+        </View>
+        <Animated.Text
+          className="text-[11px] font-bold leading-3"
+          style={labelStyle}
         >
-          <Icon size={23} color={colors.ink} strokeWidth={2.2} />
-        </Animated.View>
-        <Animated.View
-          pointerEvents="none"
-          className="items-center justify-center"
-          style={[StyleSheet.absoluteFill, activeIconStyle]}
-        >
-          <Icon size={23} color={colors.red} strokeWidth={2.8} />
-        </Animated.View>
-      </View>
-      <Animated.Text className="text-[11px] font-bold" style={labelStyle}>
-        {item.label}
-      </Animated.Text>
-    </Pressable>
+          {item.label}
+        </Animated.Text>
+      </Pressable>
+    </Animated.View>
   );
 }
+
+const styles = StyleSheet.create({
+  dock: {
+    elevation: 9,
+    shadowColor: colors.blue,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 18,
+  },
+  tabSurface: {
+    borderRadius: 20,
+    flex: 1,
+    overflow: 'hidden',
+  },
+});

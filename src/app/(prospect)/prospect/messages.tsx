@@ -1,11 +1,13 @@
-import { MessageCircle } from 'lucide-react-native';
 import { useState } from 'react';
 import { AppScreen } from '../../../components/layout/AppScreen';
 import { prospectQuickLinks } from '../../../components/layout/navigation';
 import { PageHero } from '../../../components/ui/PageHero';
-import { ErrorState, LoadingState } from '../../../components/ui/StateViews';
+import { ErrorState } from '../../../components/ui/StateViews';
 import { useAuth } from '../../../features/auth/AuthProvider';
-import { ConversationList } from '../../../features/messaging/components/ConversationList';
+import {
+  ConversationList,
+  ConversationListSkeleton,
+} from '../../../features/messaging/components/ConversationList';
 import { MessagingModal } from '../../../features/messaging/components/MessagingModal';
 import { useConversations, useMessagingSocket } from '../../../features/messaging/hooks';
 import { Conversation } from '../../../lib/api/types';
@@ -18,25 +20,26 @@ export default function ProspectMessagesScreen() {
 
   return (
     <AppScreen
-      title="Messages"
+      title="Chat"
       quickLinks={prospectQuickLinks}
     >
       <PageHero
-        title="Sales Manager Messages"
-        subtitle="Connect with your assigned Hercules contact."
+        title="Chat"
+        subtitle="Connect with your assigned Hercules sales manager."
       />
 
-      {conversations.loading ? <LoadingState label="Loading conversations" /> : null}
-      {conversations.error ? (
+      {conversations.error && conversations.conversations.length === 0 ? (
         <ErrorState message={conversations.error} onRetry={conversations.reload} />
-      ) : null}
-      {user ? (
+      ) : !user ||
+        (conversations.loading && conversations.conversations.length === 0) ? (
+        <ConversationListSkeleton />
+      ) : (
         <ConversationList
           conversations={conversations.conversations}
           currentUser={user}
           onSelect={setSelected}
         />
-      ) : null}
+      )}
       {user ? (
         <MessagingModal
           conversation={selected}

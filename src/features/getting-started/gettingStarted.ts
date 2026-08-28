@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import {
   ClassSession,
   EquipmentRegistration,
@@ -13,10 +14,10 @@ const gettingStartedDraftKey = (userId: string) =>
 
 export const gettingStartedSteps = [
   'Business Profile',
-  'Equipment',
-  'Certification',
+  'Training',
   'JB Warranties',
-  'Marketing',
+  'Marketing Consultation',
+  'First LG System',
   'Review',
 ] as const;
 
@@ -66,7 +67,15 @@ export async function getGettingStartedDraft(
   userId: string,
 ): Promise<GettingStartedDraft | null> {
   const storageKey = gettingStartedDraftKey(userId);
-  const stored = await AsyncStorage.getItem(storageKey);
+  let stored = await SecureStore.getItemAsync(storageKey);
+  if (!stored) {
+    const legacyStored = await AsyncStorage.getItem(storageKey);
+    if (legacyStored) {
+      await SecureStore.setItemAsync(storageKey, legacyStored);
+      await AsyncStorage.removeItem(storageKey);
+      stored = legacyStored;
+    }
+  }
   if (!stored) {
     return null;
   }
@@ -74,7 +83,10 @@ export async function getGettingStartedDraft(
   try {
     return JSON.parse(stored) as GettingStartedDraft;
   } catch {
-    await AsyncStorage.removeItem(storageKey);
+    await Promise.all([
+      SecureStore.deleteItemAsync(storageKey),
+      AsyncStorage.removeItem(storageKey),
+    ]);
     return null;
   }
 }
@@ -84,7 +96,7 @@ export async function saveGettingStartedDraft(
   update: Partial<GettingStartedDraft>,
 ) {
   const existing = (await getGettingStartedDraft(userId)) ?? {};
-  await AsyncStorage.setItem(
+  await SecureStore.setItemAsync(
     gettingStartedDraftKey(userId),
     JSON.stringify({ ...existing, ...update }),
   );
@@ -105,33 +117,43 @@ export async function clearGettingStartedDraftFields(
   });
 
   if (Object.keys(existing).length === 0) {
-    await AsyncStorage.removeItem(storageKey);
+    await Promise.all([
+      SecureStore.deleteItemAsync(storageKey),
+      AsyncStorage.removeItem(storageKey),
+    ]);
     return;
   }
 
-  await AsyncStorage.setItem(storageKey, JSON.stringify(existing));
+  await SecureStore.setItemAsync(storageKey, JSON.stringify(existing));
 }
 
 export async function clearGettingStartedDraft(userId: string) {
-  await AsyncStorage.removeItem(gettingStartedDraftKey(userId));
+  const storageKey = gettingStartedDraftKey(userId);
+  await Promise.all([
+    SecureStore.deleteItemAsync(storageKey),
+    AsyncStorage.removeItem(storageKey),
+  ]);
 }
 
 export function getGettingStartedCompletion(data: GettingStartedData) {
   const profile = data.user.prospectProfile;
   return [
     Boolean(
-      data.user.email &&
+        data.user.email &&
         data.user.firstName &&
         data.user.lastName &&
-        data.user.phone &&
         profile?.companyName,
     ),
-    data.equipment.length > 0,
-    data.classes.some((session) => session.isEnrolled),
+    data.classes.some(
+      (session) =>
+        session.enrollmentStatus === 'ENROLLED' ||
+        session.enrollmentStatus === 'COMPLETED',
+    ),
     data.todos.some(
       (todo) => todo.type === 'JB_WARRANTIES' && todo.status === 'COMPLETED',
     ),
     Boolean(data.consultation.submittedAt),
+    data.equipment.length > 0,
   ];
 }
 

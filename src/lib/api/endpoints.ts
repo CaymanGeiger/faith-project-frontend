@@ -9,6 +9,7 @@ import {
   LeadRecord,
   MarketingConsultation,
   Message,
+  OnboardingSummary,
   ProspectProfile,
   Resource,
   TodoItem,
@@ -22,15 +23,30 @@ export const accountApi = {
       method: 'PATCH',
       body: JSON.stringify(body),
     }),
+  acceptLegalTerms: () =>
+    apiFetch<{ user: User }>('/me/legal-acceptance', {
+      method: 'PATCH',
+    }),
+  requestDeletion: () =>
+    apiFetch<{ completed: boolean; message: string }>(
+      '/me/account-deletion-request',
+      { method: 'POST' },
+    ),
+  requestExternalDeletion: (email: string) =>
+    apiFetch<{ message: string }>('/account-deletion-requests', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
   onboarding: () =>
     apiFetch<{
       profile: ProspectProfile;
-      summary: Record<string, number | string>;
+      summary: OnboardingSummary;
     }>('/me/onboarding-status'),
 };
 
 export const classesApi = {
-  list: () => apiFetch<{ classes: ClassSession[] }>('/classes'),
+  list: (options: RequestInit = {}) =>
+    apiFetch<{ classes: ClassSession[] }>('/classes', options),
   enroll: (id: string) =>
     apiFetch<{ enrollment: ClassEnrollment }>(`/classes/${id}/enroll`, {
       method: 'POST',
@@ -113,7 +129,8 @@ export const leadsApi = {
 };
 
 export const conversationsApi = {
-  list: () => apiFetch<{ conversations: Conversation[] }>('/conversations'),
+  list: (options: RequestInit = {}) =>
+    apiFetch<{ conversations: Conversation[] }>('/conversations', options),
   get: (conversationId: string) =>
     apiFetch<{ conversation: Conversation }>(`/conversations/${conversationId}`),
   messages: (conversationId: string, cursor?: string) =>
@@ -122,4 +139,17 @@ export const conversationsApi = {
         cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''
       }`,
     ),
+  reportMessage: (conversationId: string, messageId: string) =>
+    apiFetch<{ message: string }>(
+      `/conversations/${conversationId}/messages/${messageId}/report`,
+      { method: 'POST' },
+    ),
+  blockParticipant: (conversationId: string) =>
+    apiFetch<{ blocked: boolean }>(`/conversations/${conversationId}/block`, {
+      method: 'POST',
+    }),
+  unblockParticipant: (conversationId: string) =>
+    apiFetch<{ blocked: boolean }>(`/conversations/${conversationId}/block`, {
+      method: 'DELETE',
+    }),
 };

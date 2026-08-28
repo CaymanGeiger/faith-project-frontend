@@ -1,15 +1,5 @@
-import { ActivityIndicator, Text, View } from 'react-native';
-import { colors } from '../../lib/theme/theme';
+import { Text, View } from 'react-native';
 import { SecondaryButton } from './SecondaryButton';
-
-export function LoadingState({ label = 'Loading' }: { label?: string }) {
-  return (
-    <View className="items-center gap-3 rounded-[20px] bg-hercules-white p-6">
-      <ActivityIndicator color={colors.red} />
-      <Text className="font-bold text-hercules-muted">{label}</Text>
-    </View>
-  );
-}
 
 export function ErrorState({
   message,
@@ -19,7 +9,11 @@ export function ErrorState({
   onRetry?: () => void;
 }) {
   return (
-    <View className="gap-4 rounded-[20px] bg-hercules-white p-5">
+    <View
+      accessibilityLiveRegion="assertive"
+      accessibilityRole="alert"
+      className="gap-4 rounded-[16px] border border-hercules-red/20 bg-hercules-white p-5"
+    >
       <Text className="text-base font-extrabold text-hercules-red">{message}</Text>
       {onRetry ? <SecondaryButton label="Retry" onPress={onRetry} /> : null}
     </View>
@@ -28,7 +22,7 @@ export function ErrorState({
 
 export function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <View className="gap-2 rounded-[20px] bg-hercules-white p-5">
+    <View className="gap-2 rounded-[16px] border border-hercules-blue/15 bg-hercules-white p-5">
       <Text className="text-lg font-extrabold text-hercules-ink">{title}</Text>
       <Text className="text-sm leading-5 text-hercules-muted">{body}</Text>
     </View>

@@ -17,6 +17,9 @@ export function SecondaryButton({
 }: SecondaryButtonProps) {
   return (
     <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: Boolean(disabled) }}
       disabled={disabled}
       onPress={onPress}
       className="min-h-14 flex-row items-center justify-center gap-2 rounded-pill bg-hercules-blue px-5 active:opacity-80 disabled:opacity-50"

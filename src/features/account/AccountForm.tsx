@@ -49,9 +49,9 @@ export function AccountForm({ user, companyName, onSaved }: AccountFormProps) {
   };
 
   return (
-    <View className="gap-4 rounded-[24px] border border-hercules-blue/20 bg-hercules-white p-5">
-      <Text className="text-2xl font-extrabold text-hercules-ink">
-        Manage Account
+    <View className="gap-3 rounded-[16px] border border-hercules-blue/15 bg-hercules-white p-4">
+      <Text className="text-xl font-extrabold text-hercules-ink">
+        Your details
       </Text>
       {error ? <ErrorState message={error} /> : null}
       <TextInput
@@ -59,17 +59,34 @@ export function AccountForm({ user, companyName, onSaved }: AccountFormProps) {
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
+        compact
       />
-      <TextInput label="First Name" value={firstName} onChangeText={setFirstName} />
-      <TextInput label="Last Name" value={lastName} onChangeText={setLastName} />
       <TextInput
-        label="Phone"
+        label="First Name"
+        value={firstName}
+        onChangeText={setFirstName}
+        compact
+      />
+      <TextInput
+        label="Last Name"
+        value={lastName}
+        onChangeText={setLastName}
+        compact
+      />
+      <TextInput
+        label="Phone (optional)"
         value={phone}
         onChangeText={setPhone}
         keyboardType="phone-pad"
+        compact
       />
       {user.role === 'PROSPECT' ? (
-        <TextInput label="Company" value={company} onChangeText={setCompany} />
+        <TextInput
+          label="Company"
+          value={company}
+          onChangeText={setCompany}
+          compact
+        />
       ) : null}
       <PrimaryButton label="Save Changes" onPress={save} loading={saving} />
     </View>

@@ -1,14 +1,19 @@
 import { useEffect } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable } from 'react-native';
+import { Menu, X } from 'lucide-react-native';
 import Animated, {
-  Easing,
   interpolate,
+  ReduceMotion,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { motionDuration, motionEasing } from '../../lib/motion';
 import { colors } from '../../lib/theme/theme';
+import {
+  headerControlClassName,
+  headerControlHitSlop,
+} from './headerControl';
 
 type AnimatedMenuButtonProps = {
   open: boolean;
@@ -19,46 +24,26 @@ export function AnimatedMenuButton({ open, onPress }: AnimatedMenuButtonProps) {
   const progress = useSharedValue(open ? 1 : 0);
 
   useEffect(() => {
-    progress.value = open
-      ? withSpring(1, { damping: 17, mass: 0.8, stiffness: 210 })
-      : withTiming(0, {
-          duration: 210,
-          easing: Easing.out(Easing.cubic),
-        });
+    progress.value = withTiming(open ? 1 : 0, {
+      duration: motionDuration.micro,
+      easing: motionEasing.enter,
+      reduceMotion: ReduceMotion.System,
+    });
   }, [open, progress]);
 
-  const topLineStyle = useAnimatedStyle(() => ({
-    width: interpolate(progress.value, [0, 1], [25, 28]),
+  const menuStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0, 0.45, 1], [1, 0, 0]),
     transform: [
-      { translateX: interpolate(progress.value, [0, 1], [-1, 0]) },
-      { translateY: interpolate(progress.value, [0, 1], [-8, 0]) },
-      { rotateZ: `${interpolate(progress.value, [0, 1], [0, 45])}deg` },
+      { scale: interpolate(progress.value, [0, 1], [1, 0.82]) },
+      { rotateZ: `${interpolate(progress.value, [0, 1], [0, -12])}deg` },
     ],
   }));
 
-  const middleLineStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 0.45, 1], [1, 0.25, 0]),
-    width: interpolate(progress.value, [0, 1], [15, 6]),
+  const closeStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0, 0.55, 1], [0, 0, 1]),
     transform: [
-      { translateX: interpolate(progress.value, [0, 1], [5, 0]) },
-      { scaleX: interpolate(progress.value, [0, 1], [1, 0.4]) },
-    ],
-  }));
-
-  const bottomLineStyle = useAnimatedStyle(() => ({
-    width: interpolate(progress.value, [0, 1], [25, 28]),
-    transform: [
-      { translateX: interpolate(progress.value, [0, 1], [-1, 0]) },
-      { translateY: interpolate(progress.value, [0, 1], [8, 0]) },
-      { rotateZ: `${interpolate(progress.value, [0, 1], [0, -45])}deg` },
-    ],
-  }));
-
-  const pinStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 0.75, 1], [1, 0.85, 1]),
-    transform: [
-      { translateX: interpolate(progress.value, [0, 1], [-10.5, 0]) },
-      { scale: interpolate(progress.value, [0, 1], [1, 0.9]) },
+      { scale: interpolate(progress.value, [0, 1], [0.82, 1]) },
+      { rotateZ: `${interpolate(progress.value, [0, 1], [12, 0])}deg` },
     ],
   }));
 
@@ -67,31 +52,16 @@ export function AnimatedMenuButton({ open, onPress }: AnimatedMenuButtonProps) {
       accessibilityLabel="Menu"
       accessibilityRole="button"
       accessibilityState={{ expanded: open }}
+      hitSlop={headerControlHitSlop}
       onPress={onPress}
-      className="h-11 w-11 items-center justify-center rounded-full active:opacity-80"
+      className={`${headerControlClassName} ${open ? 'bg-hercules-white/10' : ''}`}
     >
-      <View className="h-7 w-8 items-center justify-center">
-        <Animated.View style={[styles.line, topLineStyle]} />
-        <Animated.View style={[styles.line, middleLineStyle]} />
-        <Animated.View style={[styles.line, bottomLineStyle]} />
-        <Animated.View style={[styles.pin, pinStyle]} />
-      </View>
+      <Animated.View className="absolute" style={menuStyle}>
+        <Menu size={23} color={colors.white} strokeWidth={2.3} />
+      </Animated.View>
+      <Animated.View className="absolute" style={closeStyle}>
+        <X size={23} color={colors.white} strokeWidth={2.3} />
+      </Animated.View>
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  line: {
-    position: 'absolute',
-    height: 3.5,
-    borderRadius: 999,
-    backgroundColor: colors.white,
-  },
-  pin: {
-    position: 'absolute',
-    width: 6,
-    height: 6,
-    borderRadius: 999,
-    backgroundColor: colors.blue,
-  },
-});

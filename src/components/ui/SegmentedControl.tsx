@@ -9,12 +9,14 @@ type SegmentedControlProps<T extends string> = {
   options: Option<T>[];
   value: T;
   onChange: (value: T) => void;
+  size?: 'compact' | 'regular';
 };
 
 export function SegmentedControl<T extends string>({
   options,
   value,
   onChange,
+  size = 'compact',
 }: SegmentedControlProps<T>) {
   return (
     <View className="flex-row rounded-[18px] border border-hercules-blue bg-hercules-white p-1">
@@ -23,14 +25,18 @@ export function SegmentedControl<T extends string>({
         return (
           <Pressable
             key={option.value}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
             onPress={() => onChange(option.value)}
-            className={`min-h-10 flex-1 items-center justify-center rounded-[14px] ${
+            className={`${size === 'regular' ? 'min-h-11' : 'min-h-10'} flex-1 items-center justify-center rounded-[14px] ${
               active ? 'bg-hercules-blue' : ''
             }`}
           >
             <Text
               numberOfLines={1}
-              className={`text-center text-[10px] font-extrabold ${
+              className={`text-center font-extrabold ${
+                size === 'regular' ? 'text-sm' : 'text-[10px]'
+              } ${
                 active ? 'text-hercules-white' : 'text-hercules-blue'
               }`}
             >
