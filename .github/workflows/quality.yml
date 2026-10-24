@@ -18,15 +18,21 @@ jobs:
     name: Tests, typecheck and all platform exports
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - name: Check out source
         uses: actions/checkout@v5
+        with:
+          path: frontend
 
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
-          node-version-file: .nvmrc
+          node-version-file: frontend/.nvmrc
           cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install locked dependencies
         run: npm ci
