@@ -6,7 +6,7 @@ import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -20,6 +20,10 @@ import {
 import { AuthProvider, useAuth } from '../features/auth/AuthProvider';
 import { useReducedMotion } from 'react-native-reanimated';
 import { InAppContentProvider } from '../features/content/InAppContentProvider';
+
+// Router 58 supplies a stable web safe-area context for streamed hydration.
+// Let CSS apply browser insets without mounting another measuring provider.
+const RootSafeArea = Platform.OS === 'web' ? View : SafeAreaProvider;
 
 void SplashScreen.preventAutoHideAsync().catch(() => {
   // The splash may already be hidden during a fast refresh in Expo Go.
@@ -135,7 +139,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView className="flex-1">
-      <SafeAreaProvider>
+      <RootSafeArea className={Platform.OS === 'web' ? 'hercules-web-safe-area flex-1' : undefined}>
         <AuthProvider>
           {preparedBrandAssets ? (
             <BrandAssetsProvider assets={preparedBrandAssets}>
@@ -143,7 +147,7 @@ export default function RootLayout() {
             </BrandAssetsProvider>
           ) : null}
         </AuthProvider>
-      </SafeAreaProvider>
+      </RootSafeArea>
     </GestureHandlerRootView>
   );
 }

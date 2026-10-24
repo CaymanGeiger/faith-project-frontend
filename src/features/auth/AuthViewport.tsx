@@ -7,7 +7,7 @@ import {
   useState,
 } from 'react';
 import type { PropsWithChildren, RefObject } from 'react';
-import { Keyboard, ScrollView, View } from 'react-native';
+import { Keyboard, View, type ScrollViewInstance } from 'react-native';
 import { CoBrandLockup } from '../../components/ui/CoBrandLockup';
 
 type AuthViewportContextValue = {
@@ -20,7 +20,7 @@ const AuthViewportContext = createContext<AuthViewportContextValue | null>(
 );
 
 type AuthViewportProviderProps = PropsWithChildren<{
-  scrollRef: RefObject<ScrollView | null>;
+  scrollRef: RefObject<ScrollViewInstance | null>;
 }>;
 
 export function AuthViewportProvider({

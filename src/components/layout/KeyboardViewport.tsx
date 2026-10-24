@@ -1,9 +1,9 @@
 import { useCallback, useRef, useState, type PropsWithChildren } from 'react';
-import { KeyboardAvoidingView, Platform, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, View, type ViewInstance } from 'react-native';
 
 /** Keep scrolling content and its footer in one keyboard-safe viewport. */
 export function KeyboardViewport({ children }: PropsWithChildren) {
-  const container = useRef<View>(null);
+  const container = useRef<ViewInstance>(null);
   const [screenTop, setScreenTop] = useState(0);
   const measure = useCallback(() => {
     container.current?.measureInWindow((_x, y) => setScreenTop(y));

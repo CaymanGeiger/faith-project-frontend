@@ -2,7 +2,7 @@
   "expo": {
     "name": "Hercules Honors Rewards",
     "slug": "hercules-honors-rewards",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/hercules-app-icon.png",
     "userInterfaceStyle": "light",
@@ -57,9 +57,6 @@
             "packagingOptions": {
               "pickFirst": ["**/libc++_shared.so"]
             }
-          },
-          "ios": {
-            "enableSceneSupport": true
           }
         }
       ],

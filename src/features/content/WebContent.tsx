@@ -7,7 +7,7 @@ import type { WebContentHandle, WebContentProps } from './WebContent.types';
 import { webPageReadabilityScript } from './webPageReadability';
 
 export const WebContent = forwardRef<WebContentHandle, WebContentProps>(function WebContent(props, ref) {
-  const web = useRef<NativeWebView>(null);
+  const web = useRef<NativeWebView<unknown>>(null);
   const callbacks = useRef(props);
   callbacks.current = props;
   const [WebView] = useState(() => {
@@ -15,7 +15,9 @@ export const WebContent = forwardRef<WebContentHandle, WebContentProps>(function
     // until a rebuilt binary is installed instead of failing during root imports.
     try {
       if (!(TurboModuleRegistry.get('RNCWebViewModule') ?? NativeModules.RNCWebViewModule)) return null;
-      return require('react-native-webview').WebView as typeof import('react-native-webview').WebView;
+      // WebView's default extra-props generic is undefined, which collapses its
+      // props intersection to never when the component is loaded dynamically.
+      return require('react-native-webview').WebView as typeof NativeWebView<unknown>;
     } catch { return null; }
   });
   const failed = useRef(false);

@@ -8,6 +8,7 @@ import {
   Platform,
   ScrollView,
   View,
+  type ScrollViewInstance,
 } from 'react-native';
 import {
   SafeAreaView,
@@ -20,7 +21,7 @@ export default function AuthLayout() {
   const { user, loading } = useAuth();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
 
   useEffect(() => {
     Keyboard.dismiss();

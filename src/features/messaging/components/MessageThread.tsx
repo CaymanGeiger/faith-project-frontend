@@ -82,7 +82,7 @@ export function MessageThread({
           <FlatList
             key={conversationId ?? 'chat'}
             data={newestFirst}
-            ListFooterComponent={hasOlder ? <Pressable accessibilityRole="button" disabled={loadingOlder} onPress={onLoadOlder} className="min-h-11 items-center justify-center"><Text className="font-bold text-hercules-blue">{loadingOlder ? 'Loading…' : 'Load older messages'}</Text></Pressable> : null}
+            ListFooterComponent={hasOlder ? <Pressable accessibilityRole="button" disabled={loadingOlder} onPress={onLoadOlder} className="min-h-11 items-center justify-center"><Text className="font-bold text-hercules-blue">{loadingOlder ? 'Loading…' : 'Load older messages'}</Text></Pressable> : undefined}
             inverted
             keyExtractor={(message) => message.id}
             renderItem={({ item: message, index }) => (

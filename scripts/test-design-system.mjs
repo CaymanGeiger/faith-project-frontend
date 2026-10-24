@@ -34,6 +34,57 @@ test('native theme and resolved NativeWind aliases share one source of brand col
   assert.deepEqual(plain(tailwind.theme.fontFamily.sans), originalTokens.fontFamily);
 });
 
+test('web root uses CSS safe areas without measuring during hydration, while native keeps its provider', async () => {
+  const css = require('postcss').parse(readFileSync(path.join(projectRoot, 'src/global.css'), 'utf8'));
+  for (const platform of ['web', 'ios', 'android']) {
+    let nativeMeasurements = 0;
+    const NativeProvider = ({ children, ...props }) => {
+      nativeMeasurements++;
+      return React.createElement('NativeSafeAreaProvider', props, children);
+    };
+    const load = sourceLoader({
+      '../global.css': {},
+      '../lib/motionConfig': { motionConfig: { native: { rootNavigation: 'none' } } },
+      '../features/notifications/PushNotificationsProvider': { PushNotificationsProvider: 'PushNotificationsProvider' },
+      'expo-router': { Stack: 'Stack' },
+      'expo-splash-screen': { preventAutoHideAsync: async () => {}, hideAsync: async () => {} },
+      'expo-status-bar': { StatusBar: 'StatusBar' },
+      'react-native': { Platform: { OS: platform }, View: 'View', Pressable: 'Pressable', Text: 'Text' },
+      'react-native-gesture-handler': { GestureHandlerRootView: 'GestureHandlerRootView' },
+      'react-native-safe-area-context': { SafeAreaProvider: NativeProvider, SafeAreaView: 'SafeAreaView' },
+      '../components/ui/BrandLaunchScreen': { BrandLaunchScreen: 'BrandLaunchScreen', brandLaunchExitDuration: 0 },
+      '../features/brand/BrandAssetsProvider': { BrandAssetsProvider: 'BrandAssetsProvider', usePreparedBrandAssets: () => ({}) },
+      '../features/auth/AuthProvider': { AuthProvider: 'AuthProvider', useAuth: () => ({ user: null, loading: true }) },
+      'react-native-reanimated': { useReducedMotion: () => false },
+      '../features/content/InAppContentProvider': { InAppContentProvider: 'InAppContentProvider' },
+    });
+    const Layout = load('src/app/_layout.tsx').default;
+    let root;
+    await act(async () => { root = create(React.createElement(Layout)); });
+    assert.equal(root.root.findAllByType('Stack').length, 1, 'platform wrapper must preserve the app navigator');
+    const wrapper = root.root.findByType('AuthProvider').parent;
+    if (platform === 'web') {
+      assert.equal(nativeMeasurements, 0, 'web must retain Router’s stable safe-area context');
+      assert.equal(wrapper.type, 'View');
+      const appliedClasses = wrapper.props.className.split(' ');
+      const spacing = {};
+      css.walkRules(rule => {
+        if (appliedClasses.some(name => rule.selector === `.${name}`)) {
+          rule.walkDecls(declaration => { spacing[declaration.prop] = declaration.value; });
+        }
+      });
+      for (const edge of ['top', 'right', 'bottom', 'left']) {
+        assert.equal(spacing[`padding-${edge}`], `env(safe-area-inset-${edge}, 0px)`, `web ${edge} spacing must follow browser insets`);
+      }
+    } else {
+      assert.equal(nativeMeasurements, 1);
+      assert.equal(wrapper.type, 'NativeSafeAreaProvider');
+      assert.equal(wrapper.props.className, undefined, 'native padding must come only from its measured context');
+    }
+    await act(async () => root.unmount());
+  }
+});
+
 test('a hypothetical dealer palette propagates to native shades, shared components and NativeWind without editing app code', () => {
   const tokens = structuredClone(originalTokens);
   tokens.palette = { red: '#951245', blue: '#1264A8', white: '#FAF9F8' };

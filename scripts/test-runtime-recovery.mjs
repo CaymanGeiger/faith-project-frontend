@@ -273,27 +273,51 @@ test('incoming message reporting remains available by long press and accessibili
 });
 
 for (const role of ['prospect', 'manager']) test(`${role} bottom navigation resets nested history while ordinary Back preserves the previous page`, async () => {
-  const { StackRouter, StackActions } = await import('../node_modules/expo-router/build/react-navigation/routers/StackRouter.js');
+  // Load the real router reducer without loading React Native's UI runtime in Node.
+  const { StackRouter, StackActions, isActionHandled } = await import('../node_modules/expo-router/build/react-navigation/routers/index.js');
   const { canGoBackWithinTab, getTabResetAction } = sourceLoader()('src/lib/tabHistory.ts');
-  const options = { routeNames: [`${role}/index`, `${role}/resources`, `${role}/account`], routeParamList: {}, routeGetIdList: {} };
-  const router = StackRouter({ initialRouteName: `${role}/index` });
-  let stack = router.getInitialState(options);
+  const options = { routeNames: [`${role}/index`, `${role}/resources`, `${role}/account`], routeGetIdList: {} };
+  const router = StackRouter({});
+  // SDK 58 creates complete initial state from the URL, before calling the router reducer.
+  let stack = { type: 'stack', stale: false, key: `${role}-stack`, routeKeySeq: 1, index: 0, routeNames: options.routeNames, routes: [{ key: `${role}-home`, name: `${role}/index` }] };
+  const apply = action => {
+    const result = router.getStateForAction(stack, action, options);
+    assert.equal(isActionHandled(result), true, `${action.type} must be accepted by the installed router`);
+    stack = result.state;
+    return result;
+  };
   const root = () => ({ type: 'stack', key: 'root', index: 1, routes: [{ name: '(auth)' }, { name: `(${role})`, state: stack }] });
   assert.equal(canGoBackWithinTab(root()), false, 'authentication history must not expose Back');
-  stack = router.getStateForAction(stack, StackActions.push(`${role}/resources`), options);
+  apply(StackActions.push(`${role}/resources`));
   assert.equal(canGoBackWithinTab(root()), true);
-  stack = router.getStateForAction(stack, { type: 'GO_BACK' }, options);
+  apply({ type: 'GO_BACK' });
   assert.equal(stack.routes[stack.index].name, `${role}/index`);
   assert.equal(canGoBackWithinTab(root()), false);
-  stack = router.getStateForAction(stack, StackActions.push(`${role}/resources`), options);
-  stack = router.getStateForAction(stack, StackActions.push(`${role}/account`), options);
+  apply(StackActions.push(`${role}/resources`));
+  apply(StackActions.push(`${role}/account`));
   for (const href of [`/${role}`, `/${role}/resources`, `/${role}/account`, `/${role}/account`]) {
+    const previous = stack;
     const action = getTabResetAction(root(), href);
     assert.equal(action.target, stack.key);
-    stack = router.getRehydratedState(router.getStateForAction(stack, action, options), options);
+    const result = apply(action);
     assert.equal(stack.routes.length, 1, 'tab taps must discard previous pages, including reselecting the active tab');
+    assert.equal(stack.routes[0].name, href === `/${role}` ? `${role}/index` : href.slice(1));
+    assert.equal(stack.key, previous.key, 'reset must preserve the page navigator');
+    assert.equal(stack.stale, false);
+    assert.deepEqual(stack.routeNames, options.routeNames);
+    assert.ok(stack.routeKeySeq > previous.routeKeySeq, 'reset must preserve and advance the route key sequence');
+    assert.ok(previous.routes.every(route => route.key !== stack.routes[0].key), 'reselected tabs must receive a fresh screen instance');
+    assert.equal(result.affectedRouteKey, stack.routes[0].key);
     assert.equal(canGoBackWithinTab(root()), false);
-    assert.equal(router.getStateForAction(stack, { type: 'GO_BACK' }, options), null);
+    assert.equal(isActionHandled(router.getStateForAction(stack, { type: 'GO_BACK' }, options)), false);
   }
+  apply({ type: 'PRELOAD', payload: { name: `${role}/resources` } });
+  assert.equal(stack.routes.length, 2, 'SDK 58 stores preloaded screens after the focused index');
+  assert.equal(canGoBackWithinTab(root()), false, 'preloaded screens must not expose Back');
+  apply(getTabResetAction(root(), `/${role}/resources`));
+  assert.equal(stack.routes.length, 1);
+  assert.equal(stack.routes[0].isPreloaded, undefined);
   assert.equal(getTabResetAction(root(), '/unknown'), null);
+  assert.equal(getTabResetAction(undefined, `/${role}`), null);
+  assert.equal(getTabResetAction({ ...stack, stale: true }, `/${role}`), null, 'incomplete navigation state must not be dispatched as a reset');
 });
