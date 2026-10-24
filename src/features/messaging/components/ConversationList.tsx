@@ -1,9 +1,11 @@
 import { View } from 'react-native';
 import { Conversation, User } from '../../../lib/api/types';
+import { AnimatedCard } from '../../../components/ui/AnimatedCard';
 import { EmptyState } from '../../../components/ui/StateViews';
 import { SkeletonLine } from '../../../components/ui/SkeletonPrimitives';
 import { SkeletonReveal } from '../../../components/ui/SkeletonReveal';
 import { ConversationListItem } from './ConversationListItem';
+import { chatStyles } from '../../../lib/theme/chatStyles';
 
 type ConversationListProps = {
   conversations: Conversation[];
@@ -18,47 +20,61 @@ export function ConversationList({
 }: ConversationListProps) {
   if (conversations.length === 0) {
     return (
-      <EmptyState
-        title="No chats yet"
-        body="Your assigned chats will appear here."
-      />
+      <AnimatedCard index={1}>
+        <EmptyState
+          title="No chats yet"
+          body="Your assigned chats will appear here."
+        />
+      </AnimatedCard>
     );
   }
 
   return (
-    <View className="gap-3">
+    <AnimatedCard index={1} className={chatStyles.list.container}>
       {conversations.map((conversation) => (
         <ConversationListItem
           key={conversation.id}
           conversation={conversation}
+          personal={currentUser.role === 'PROSPECT' && conversations.length === 1}
           currentUser={currentUser}
           onPress={() => onSelect(conversation)}
         />
       ))}
-    </View>
+    </AnimatedCard>
   );
 }
 
 export function ConversationListSkeleton({ rows = 1 }: { rows?: number }) {
+  if (rows === 1) {
+    return (
+      <SkeletonReveal label="Loading conversation" className={chatStyles.list.loading}>
+        <View className={chatStyles.personalContact.identity}>
+          <View className={chatStyles.personalContact.skeleton.avatar} />
+          <SkeletonLine className={chatStyles.personalContact.skeleton.name} />
+          <SkeletonLine className={chatStyles.personalContact.skeleton.role} subtle />
+        </View>
+        <View className={chatStyles.personalContact.skeleton.action} />
+      </SkeletonReveal>
+    );
+  }
   return (
     <SkeletonReveal
       label="Loading conversations"
-      className="w-full"
+      className={chatStyles.list.loading}
     >
-      <View className="gap-3">
+      <View className={chatStyles.list.container}>
         {Array.from({ length: rows }, (_, index) => (
           <View
             key={`conversation-skeleton-${index}`}
-            className="min-h-20 flex-row items-center gap-3 rounded-[20px] border border-hercules-blue/20 bg-hercules-white p-4"
+            className={chatStyles.compactInbox.row}
           >
-            <View className="h-12 w-12 rounded-full bg-hercules-blue/15" />
-            <View className="flex-1 gap-1">
-              <SkeletonLine className="h-6 w-3/4" />
-              <SkeletonLine className="h-5 w-4/5" subtle />
+            <View className={chatStyles.compactInbox.skeleton.content}>
+              <SkeletonLine className={chatStyles.compactInbox.skeleton.name} />
+              <SkeletonLine className={chatStyles.compactInbox.skeleton.preview} subtle />
             </View>
-            <View className="items-end gap-2">
-              <SkeletonLine className="h-4 w-10" subtle />
-              <View className="h-6 min-w-7 rounded-pill bg-hercules-red/15" />
+            <View className={chatStyles.compactInbox.skeleton.trailing}>
+              <SkeletonLine className={chatStyles.compactInbox.skeleton.time} subtle />
+              <View className={chatStyles.compactInbox.skeleton.unread} />
             </View>
           </View>
         ))}

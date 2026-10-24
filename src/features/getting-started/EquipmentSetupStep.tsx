@@ -1,6 +1,6 @@
 import { CheckCircle2, PackagePlus } from 'lucide-react-native';
 import { useCallback, useLayoutEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { ErrorState } from '../../components/ui/StateViews';
 import { TextInput } from '../../components/ui/TextInput';
 import { equipmentApi } from '../../lib/api/endpoints';
@@ -30,6 +30,7 @@ export function EquipmentSetupStep({
   onActionChange,
 }: EquipmentSetupStepProps) {
   const existing = equipment[0];
+  const [editing, setEditing] = useState(Boolean(existing && existing.status !== 'APPROVED' && draft?.equipment));
   const [equipmentName, setEquipmentName] = useState(
     draft?.equipment?.equipmentName ?? '',
   );
@@ -43,7 +44,7 @@ export function EquipmentSetupStep({
   const [error, setError] = useState<string | null>(null);
 
   const save = useCallback(async () => {
-    if (existing) {
+    if (existing && !editing) {
       await onComplete();
       return;
     }
@@ -56,7 +57,9 @@ export function EquipmentSetupStep({
     setSaving(true);
     setError(null);
     try {
-      await equipmentApi.create({ equipmentName, modelNumber, serialNumber });
+      if (existing) await equipmentApi.update(existing.id, { equipmentName, modelNumber, serialNumber });
+      else await equipmentApi.create({ equipmentName, modelNumber, serialNumber });
+      setEditing(false);
       await clearGettingStartedDraftFields(userId, 'equipment');
       await onComplete();
     } catch (caught) {
@@ -64,7 +67,7 @@ export function EquipmentSetupStep({
     } finally {
       setSaving(false);
     }
-  }, [equipmentName, existing, modelNumber, onComplete, serialNumber, userId]);
+  }, [editing, equipmentName, existing, modelNumber, onComplete, serialNumber, userId]);
 
   const saveForLater = useCallback(
     () =>
@@ -78,10 +81,10 @@ export function EquipmentSetupStep({
     onActionChange({
       label: 'Save & Continue',
       onPress: () => void save(),
-      onSaveForLater: existing ? undefined : saveForLater,
+      onSaveForLater: !existing || editing ? saveForLater : undefined,
       loading: saving,
     });
-  }, [existing, onActionChange, save, saveForLater, saving]);
+  }, [editing, existing, onActionChange, save, saveForLater, saving]);
 
   return (
     <GettingStartedStepCard
@@ -89,7 +92,7 @@ export function EquipmentSetupStep({
       title="Add Your First LG System"
       description="Save an equipment record in this app for your Hercules dealer onboarding."
     >
-      {existing ? (
+      {existing && !editing ? (
         <View className="gap-4">
           <View className="flex-row items-start gap-3 rounded-[20px] border border-hercules-blue/20 bg-hercules-white p-4">
             <CheckCircle2 size={25} color={colors.blue} strokeWidth={2.6} />
@@ -109,6 +112,7 @@ export function EquipmentSetupStep({
               </Text>
             </View>
           </View>
+          {existing.status !== 'APPROVED' ? <Pressable accessibilityRole="button" className="min-h-11 justify-center" onPress={() => { setEquipmentName(existing.equipmentName); setModelNumber(existing.modelNumber); setSerialNumber(existing.serialNumber); setEditing(true); }}><Text className="font-bold text-hercules-blue">Correct equipment details</Text></Pressable> : null}
         </View>
       ) : (
         <View className="gap-4">

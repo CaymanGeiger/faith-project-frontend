@@ -1,3 +1,4 @@
+const tokens = require('./src/lib/theme/designTokens.cjs');
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: 'class',
@@ -6,20 +7,14 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        hercules: {
-          red: '#CE2127',
-          white: '#FFFFFF',
-          blue: '#0A2D7F',
-          ink: '#0A2D7F',
-          muted: 'rgba(10, 45, 127, 0.68)',
-        },
+        hercules: tokens.colors,
       },
       borderRadius: {
-        app: '22px',
-        pill: '999px',
+        app: `${tokens.radius.card}px`,
+        pill: `${tokens.radius.pill}px`,
       },
       fontFamily: {
-        sans: ['System'],
+        sans: tokens.fontFamily,
       },
     },
   },

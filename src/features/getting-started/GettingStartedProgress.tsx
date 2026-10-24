@@ -1,62 +1,26 @@
-import { useEffect } from 'react';
-import { Text, View } from 'react-native';
-import Animated, {
-  ReduceMotion,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
-import { motionDuration, motionEasing } from '../../lib/motion';
-import { gettingStartedSteps } from './gettingStarted';
+import { ChevronLeft } from 'lucide-react-native';
+import { Pressable, Text, View } from 'react-native';
+import { colors } from '../../lib/theme/theme';
+import { gettingStartedStepKeys } from './gettingStarted';
 
 type GettingStartedProgressProps = {
   currentStep: number;
+  disabled?: boolean;
+  onBack: () => void;
 };
 
-export function GettingStartedProgress({
-  currentStep,
-}: GettingStartedProgressProps) {
-  const setupStepCount = gettingStartedSteps.length - 1;
-  const isReviewStep = currentStep >= setupStepCount;
-  const activeStep = Math.min(currentStep + 1, setupStepCount);
-  const progress = activeStep / setupStepCount;
-  const progressValue = useSharedValue(progress);
-
-  useEffect(() => {
-    progressValue.value = withTiming(progress, {
-      duration: motionDuration.layout,
-      easing: motionEasing.enter,
-      reduceMotion: ReduceMotion.System,
-    });
-  }, [progress, progressValue]);
-
-  const progressStyle = useAnimatedStyle(() => ({
-    width: `${progressValue.value * 100}%`,
-  }));
-
+export function GettingStartedProgress({ currentStep, disabled = false, onBack }: GettingStartedProgressProps) {
   return (
-    <View className="gap-3 border-b border-hercules-blue/15 px-1 pb-5 pt-2">
-      <View className="flex-row items-center justify-between gap-3">
-        <Text className="text-base font-extrabold tracking-[-0.1px] text-hercules-ink">
-          Getting Started
-        </Text>
-        <Text className="text-sm font-extrabold text-hercules-blue">
-          {isReviewStep
-            ? 'Review & Finish'
-            : `Step ${activeStep} of ${setupStepCount}`}
-        </Text>
-      </View>
-      <View
-        accessibilityRole="progressbar"
-        accessibilityLabel={`Getting Started: ${isReviewStep ? 'review and finish' : `step ${activeStep} of ${setupStepCount}`}`}
-        accessibilityValue={{ min: 0, max: setupStepCount, now: activeStep }}
-        className="h-2.5 overflow-hidden rounded-pill bg-hercules-blue/15"
-      >
-        <Animated.View
-          className="h-full rounded-pill bg-hercules-blue"
-          style={progressStyle}
-        />
-      </View>
+    <View className="flex-row flex-wrap items-center justify-between gap-x-3">
+      <Pressable accessibilityRole="button" accessibilityLabel="Back to checklist"
+        accessibilityState={{ disabled }} disabled={disabled} onPress={onBack}
+        className="min-h-12 flex-row items-center gap-1 pr-3 active:opacity-70 disabled:opacity-50">
+        <ChevronLeft size={20} color={colors.blue} strokeWidth={2.4} />
+        <Text className="text-sm font-bold text-hercules-blue">Checklist</Text>
+      </Pressable>
+      <Text className="text-xs font-semibold text-hercules-muted">
+        Task {currentStep + 1} of {gettingStartedStepKeys.length}
+      </Text>
     </View>
   );
 }

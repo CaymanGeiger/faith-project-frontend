@@ -8,13 +8,20 @@ import {
 } from 'react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import Animated, {
-  ReduceMotion,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { motionDuration, motionEasing } from '../../lib/motion';
+import { feedbackTiming } from '../../lib/feedbackMotion';
+import { motionConfig } from '../../lib/motionConfig';
+import { usePressScale } from '../../lib/hooks/usePressScale';
 import { colors } from '../../lib/theme/theme';
+import { componentStyles } from '../../lib/theme/componentStyles';
+
+const motion = motionConfig.feedback;
+
+
+const styles = componentStyles.button.primary;
 
 type PrimaryButtonProps = {
   label: string;
@@ -34,18 +41,19 @@ export function PrimaryButton({
   shape = 'pill',
 }: PrimaryButtonProps) {
   const [spinnerRunning, setSpinnerRunning] = useState(Boolean(loading));
-  const loadingProgress = useSharedValue(loading ? 1 : 0);
-  const pressScale = useSharedValue(1);
+  const loadingProgress = useSharedValue<number>(
+    loading ? motion.progress.active : motion.progress.idle,
+  );
+  const { style: buttonStyle, setPressed } = usePressScale(motion.button.pressedScale);
 
   useEffect(() => {
     if (loading) {
       setSpinnerRunning(true);
     }
-    loadingProgress.value = withTiming(loading ? 1 : 0, {
-      duration: motionDuration.micro,
-      easing: motionEasing.enter,
-      reduceMotion: ReduceMotion.System,
-    });
+    loadingProgress.value = withTiming(
+      loading ? motion.progress.active : motion.progress.idle,
+      feedbackTiming.loading,
+    );
 
     if (loading) {
       return;
@@ -53,7 +61,7 @@ export function PrimaryButton({
 
     const timer = setTimeout(
       () => setSpinnerRunning(false),
-      motionDuration.micro + 20,
+      motion.loading.duration + motion.button.spinnerStopPadding,
     );
     return () => clearTimeout(timer);
   }, [loading, loadingProgress]);
@@ -62,35 +70,19 @@ export function PrimaryButton({
     if (!disabled && !loading) {
       return;
     }
-    pressScale.value = withTiming(1, {
-      duration: motionDuration.micro,
-      easing: motionEasing.enter,
-      reduceMotion: ReduceMotion.System,
-    });
-  }, [disabled, loading, pressScale]);
-
-  const buttonStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pressScale.value }],
-  }));
+    setPressed(false);
+  }, [disabled, loading, setPressed]);
 
   const labelStyle = useAnimatedStyle(() => ({
-    opacity: 1 - loadingProgress.value,
+    opacity: motion.opacity.visible - loadingProgress.value,
   }));
 
   const spinnerStyle = useAnimatedStyle(() => ({
     opacity: loadingProgress.value,
   }));
 
-  const animatePress = (pressed: boolean) => {
-    pressScale.value = withTiming(pressed ? 0.975 : 1, {
-      duration: pressed ? motionDuration.pressIn : motionDuration.micro,
-      easing: pressed ? motionEasing.exit : motionEasing.enter,
-      reduceMotion: ReduceMotion.System,
-    });
-  };
-
   return (
-    <Animated.View className="w-full" style={buttonStyle}>
+    <Animated.View className={styles.wrapper} style={buttonStyle}>
       <Pressable
         accessibilityLabel={label}
         accessibilityRole="button"
@@ -100,21 +92,21 @@ export function PrimaryButton({
         }}
         disabled={disabled || loading}
         onPress={onPress}
-        onPressIn={() => animatePress(true)}
-        onPressOut={() => animatePress(false)}
-        className={`h-14 items-center justify-center overflow-hidden bg-hercules-red px-5 active:opacity-90 disabled:opacity-50 ${
-          shape === 'rounded' ? 'rounded-[16px]' : 'rounded-pill'
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
+        className={`${styles.container} ${
+          shape === 'rounded' ? styles.shape.rounded : styles.shape.pill
         }`}
       >
         <Animated.View
           pointerEvents="none"
           style={[StyleSheet.absoluteFill, labelStyle]}
         >
-          <View className="flex-1 flex-row items-center justify-center gap-2">
+          <View className={styles.content}>
             {Icon ? (
-              <Icon size={18} color={colors.white} strokeWidth={2.4} />
+              <Icon size={styles.iconSize} color={colors.white} strokeWidth={styles.iconStrokeWidth} />
             ) : null}
-            <Text className="text-center text-base font-bold text-hercules-white">
+            <Text className={componentStyles.button.label}>
               {label}
             </Text>
           </View>
@@ -122,7 +114,7 @@ export function PrimaryButton({
         <Animated.View
           pointerEvents="none"
           style={[StyleSheet.absoluteFill, spinnerStyle]}
-          className="items-center justify-center"
+          className={styles.spinner}
         >
           <ActivityIndicator
             animating={spinnerRunning}

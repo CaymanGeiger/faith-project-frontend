@@ -9,16 +9,18 @@ import { ListGroup } from '../../../components/ui/ListGroup';
 import { PageHero } from '../../../components/ui/PageHero';
 import { SectionHeader } from '../../../components/ui/SectionHeader';
 import {
-  SkeletonLine,
+  SkeletonListRow,
   SkeletonSectionHeader,
 } from '../../../components/ui/SkeletonPrimitives';
 import { SkeletonReveal } from '../../../components/ui/SkeletonReveal';
 import { ErrorState } from '../../../components/ui/StateViews';
+import { useInAppContent } from '../../../features/content/InAppContentProvider';
+import { FinancingCard } from '../../../features/financing/FinancingCard';
 import { useManagerData } from '../../../features/manager/ManagerDataProvider';
 import { formatShortDate } from '../../../lib/format';
-import { openExternalUrl } from '../../../lib/openExternalUrl';
 
 export default function ManagerResourcesScreen() {
+  const { openContent } = useInAppContent();
   const { support } = useManagerData();
   const supportData = support.data;
 
@@ -30,7 +32,6 @@ export default function ManagerResourcesScreen() {
       <PageHero
         title="Shared Dealer Resources"
         subtitle="Training, technical resources, and benefit information for dealer support."
-        reveal={false}
       />
 
       {support.error && !supportData ? (
@@ -43,7 +44,7 @@ export default function ManagerResourcesScreen() {
         >
           {supportData ? (
             <>
-              <AnimatedCard reveal={false} className="gap-3">
+              <AnimatedCard index={1} className="gap-3">
                 <SectionHeader title="Training" />
                 <ListGroup>
                   {supportData.classes.classes.map((session, index) => (
@@ -63,7 +64,7 @@ export default function ManagerResourcesScreen() {
                 </ListGroup>
               </AnimatedCard>
 
-              <AnimatedCard reveal={false} className="gap-3">
+              <AnimatedCard index={2} className="gap-3">
                 <SectionHeader title="Resources" />
                 <ListGroup>
                   {supportData.resources.resources.map((resource, index) => (
@@ -81,13 +82,13 @@ export default function ManagerResourcesScreen() {
                         index === supportData.resources.resources.length - 1
                       }
                       subtitleNumberOfLines={1}
-                      onPress={() => void openExternalUrl(resource.url)}
+                      onPress={() => openContent({ url: resource.url, title: resource.title })}
                     />
                   ))}
                 </ListGroup>
               </AnimatedCard>
 
-              <AnimatedCard reveal={false} className="gap-3">
+              <AnimatedCard index={3} className="gap-3">
                 <SectionHeader title="Benefits" />
                 <ListGroup>
                   {supportData.benefits.benefits.map((benefit, index) => (
@@ -103,11 +104,14 @@ export default function ManagerResourcesScreen() {
                         index === supportData.benefits.benefits.length - 1
                       }
                       subtitleNumberOfLines={1}
-                      onPress={() => void openExternalUrl(benefit.url)}
+                      onPress={benefit.url
+                        ? () => openContent({ url: benefit.url, title: benefit.title })
+                        : undefined}
                     />
                   ))}
                 </ListGroup>
               </AnimatedCard>
+              <FinancingCard />
             </>
           ) : null}
         </AsyncContent>
@@ -165,80 +169,19 @@ function ManagerResourceSectionSkeleton({
   return (
     <View className="gap-3">
       <SkeletonSectionHeader widthClassName={titleWidthClassName} />
-      <View className="overflow-hidden rounded-[18px] border border-hercules-blue/15 bg-hercules-white">
+      <ListGroup>
         {Array.from({ length: rows }, (_, index) => (
-          <ManagerResourceRowSkeleton
+          <SkeletonListRow
             key={`manager-resource-row-${iconTone}-${index}`}
             iconTone={iconTone}
             isLast={index === rows - 1}
             titleLines={twoLineTitleIndexes.includes(index) ? 2 : 1}
-            metadataWidth={metadataWidths[index] ?? 64}
-            showChevron={trailing === 'meta-chevron'}
+            metaWidth={metadataWidths[index] ?? 64}
+            trailing={trailing}
+            chevronWidthClassName="w-2"
           />
         ))}
-      </View>
-    </View>
-  );
-}
-
-type ManagerResourceRowSkeletonProps = {
-  iconTone: 'red' | 'blue';
-  isLast: boolean;
-  titleLines: 1 | 2;
-  metadataWidth: number;
-  showChevron: boolean;
-};
-
-function ManagerResourceRowSkeleton({
-  iconTone,
-  isLast,
-  titleLines,
-  metadataWidth,
-  showChevron,
-}: ManagerResourceRowSkeletonProps) {
-  return (
-    <View
-      className={`min-h-[76px] flex-row items-center gap-3 px-4 py-3 ${
-        isLast ? '' : 'border-b border-hercules-blue/10'
-      }`}
-    >
-      <View
-        className={`h-10 w-10 shrink-0 rounded-[12px] ${
-          iconTone === 'red'
-            ? 'bg-hercules-red/15'
-            : 'bg-hercules-blue/15'
-        }`}
-      />
-      <View className="min-w-0 flex-1 gap-1">
-        <View>
-          {Array.from({ length: titleLines }, (_, index) => (
-            <View
-              key={`manager-resource-title-${index}`}
-              className="h-5 justify-center"
-            >
-              <SkeletonLine
-                className={`h-4 ${index === 0 ? 'w-4/5' : 'w-3/5'}`}
-              />
-            </View>
-          ))}
-        </View>
-        <View className="h-5 justify-center">
-          <SkeletonLine className="h-3 w-3/5" subtle />
-        </View>
-      </View>
-      <View className="shrink-0 flex-row items-center justify-end gap-2">
-        <View
-          className="h-4 justify-center"
-          style={{ width: metadataWidth }}
-        >
-          <SkeletonLine className="h-3 w-full" subtle />
-        </View>
-        {showChevron ? (
-          <View className="h-6 w-4 items-center justify-center">
-            <SkeletonLine className="h-5 w-2" subtle />
-          </View>
-        ) : null}
-      </View>
+      </ListGroup>
     </View>
   );
 }

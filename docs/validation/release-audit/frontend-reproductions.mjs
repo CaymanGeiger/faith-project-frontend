@@ -1,0 +1,35 @@
+import assert from 'node:assert/strict';
+import { sourceLoader } from '../../../scripts/test-support/source-loader.mjs';
+const {recoverMessageHistory,mergeMessages}=sourceLoader()('src/features/messaging/messageHistory.ts');
+let calls=0;
+const known=Array.from({length:50},(_,i)=>({id:String(i),createdAt:new Date(2026,0,1,0,0,i).toISOString()}));
+const result=await recoverMessageHistory(async()=>{calls++;return{messages:known,nextCursor:'older'}},[],false,()=>true);
+assert.equal(calls,1);assert.equal(result.length,50);
+console.log('CONFIRMED: initial history reads one page despite nextCursor; thread has no load-older action');
+const refreshed=known.filter(m=>m.id!=='10');
+assert(mergeMessages(refreshed,known).some(m=>m.id==='10'));
+console.log('CONFIRMED: refresh merge preserves a message removed by moderation');
+const {createRequire}=await import('node:module');
+const require=createRequire(new URL('../../../package.json', import.meta.url));
+const React=require('react');const {create,act}=require('react-test-renderer');
+globalThis.IS_REACT_ACT_ENVIRONMENT=true;
+let expired=false,auth,root;let saved='stored';
+class ApiError extends Error{constructor(status){super('HTTP '+status);this.status=status}}
+const load=sourceLoader({'expo-secure-store':{isAvailableAsync:async()=>true,getItemAsync:async()=>saved,deleteItemAsync:async()=>{saved=null}},'@react-native-async-storage/async-storage':{removeItem:async()=>{}},'../../lib/api/client':{ApiError,setApiToken:()=>{},apiFetch:async()=>{if(expired)throw new ApiError(401);return{user:{id:'dealer'}}}},'../getting-started/gettingStarted':{clearGettingStartedDraft:async()=>{}}});
+const {AuthProvider,useAuth}=load('src/features/auth/AuthProvider.tsx');
+function Consumer(){auth=useAuth();return null}
+await act(async()=>{root=create(React.createElement(AuthProvider,null,React.createElement(Consumer)))});
+expired=true;
+await act(async()=>{await assert.rejects(auth.refreshMe(),/HTTP 401/)});
+assert.equal(auth.user.id,'dealer');assert.equal(auth.token,'stored');
+console.log('CONFIRMED: authenticated session remains logged-in with rejected token after refreshMe returns 401');
+await act(async()=>root.unmount());
+let action,completions=0,enrollments=0;
+const classLoad=sourceLoader({'react-native':{Pressable:'Pressable',Text:'Text',View:'View'},'lucide-react-native':{CalendarDays:'Icon',CheckCircle2:'Icon',Circle:'Icon'},'../../components/ui/StateViews':{ErrorState:'ErrorState'},'../../lib/api/endpoints':{classesApi:{enroll:async()=>enrollments++}},'../../lib/format':{formatShortDate:()=>'',formatTime:()=>''},'../../lib/theme/theme':{colors:{}},'./gettingStarted':{clearGettingStartedDraftFields:async()=>{},saveGettingStartedDraft:async()=>{}},'./GettingStartedStepCard':{GettingStartedStepCard:'StepCard'}});
+const {ClassSetupStep}=classLoad('src/features/getting-started/ClassSetupStep.tsx');
+await act(async()=>{root=create(React.createElement(ClassSetupStep,{classes:[{id:'old',enrollmentStatus:'ENROLLED'},{id:'new',enrollmentStatus:null}],userId:'dealer',onComplete:async()=>completions++,onActionChange:a=>{action=a}}))});
+await act(async()=>root.root.findAllByType('Pressable')[1].props.onPress());
+await act(async()=>action.onPress());
+assert.equal(completions,1);assert.equal(enrollments,0);
+console.log('CONFIRMED: selecting another class in Getting Started advances without saving the new selection');
+await act(async()=>root.unmount());

@@ -1,3 +1,4 @@
+import { nativeStyles } from '../../lib/theme/nativeStyles';
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { BrandImage } from './BrandImage';
@@ -45,9 +46,4 @@ export const CoBrandLockup = memo(function CoBrandLockup({
   );
 });
 
-const styles = StyleSheet.create({
-  image: {
-    height: '100%',
-    width: '100%',
-  },
-});
+const styles = StyleSheet.create(nativeStyles.branding);

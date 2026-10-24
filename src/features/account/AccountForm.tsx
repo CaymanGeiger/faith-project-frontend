@@ -1,3 +1,4 @@
+import { EmailChangeForm } from './EmailChangeForm';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
@@ -34,7 +35,6 @@ export function AccountForm({ user, companyName, onSaved }: AccountFormProps) {
     setError(null);
     try {
       await accountApi.update({
-        email,
         firstName,
         lastName,
         phone,
@@ -57,10 +57,11 @@ export function AccountForm({ user, companyName, onSaved }: AccountFormProps) {
       <TextInput
         label="Email"
         value={email}
-        onChangeText={setEmail}
+        editable={false}
         keyboardType="email-address"
         compact
       />
+      <EmailChangeForm />
       <TextInput
         label="First Name"
         value={firstName}

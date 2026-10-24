@@ -20,6 +20,7 @@ function compileApiClient() {
 
   execFileSync(process.execPath, [
     compiler,
+    '--ignoreConfig',
     'src/lib/api/client.ts',
     '--module',
     'commonjs',
@@ -27,6 +28,8 @@ function compileApiClient() {
     'ES2022',
     '--lib',
     'ES2022,DOM',
+    '--types',
+    'node',
     '--esModuleInterop',
     'true',
     '--skipLibCheck',
@@ -190,6 +193,28 @@ async function main() {
         );
         return true;
       });
+    });
+
+    await run('deadline covers a stalled response body even with a caller signal', async () => {
+      const originalSetTimeout = globalThis.setTimeout;
+      let expire;
+      globalThis.setTimeout = fn => { expire = fn; return 123; };
+      globalThis.fetch = async () => ({ ok: true, status: 200, json: () => new Promise(() => {}) });
+      try {
+        const result = apiFetch('/slow-body', { signal: new AbortController().signal });
+        await Promise.resolve(); expire();
+        await assert.rejects(result, error => error instanceof ApiError && error.status === 408);
+      } finally { globalThis.setTimeout = originalSetTimeout; }
+    });
+    await run('one caller cancellation cannot abort another caller request', async () => {
+      globalThis.fetch = () => new Promise(() => {});
+      const a = new AbortController(); const b = new AbortController();
+      const first = apiFetch('/cancel', { signal: a.signal });
+      const second = apiFetch('/cancel', { signal: b.signal });
+      let secondSettled = false; second.catch(() => { secondSettled = true; });
+      a.abort(); await assert.rejects(first, error => error.name === 'AbortError');
+      assert.equal(secondSettled, false);
+      b.abort(); await assert.rejects(second, error => error.name === 'AbortError');
     });
 
     await run('supports successful empty responses', async () => {

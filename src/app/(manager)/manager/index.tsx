@@ -13,6 +13,7 @@ import { SectionHeader } from '../../../components/ui/SectionHeader';
 import { SkeletonReveal } from '../../../components/ui/SkeletonReveal';
 import {
   SkeletonLine,
+  SkeletonListRow,
   SkeletonSectionHeader,
 } from '../../../components/ui/SkeletonPrimitives';
 import { ErrorState } from '../../../components/ui/StateViews';
@@ -31,7 +32,7 @@ export default function ManagerHomeScreen() {
       quickLinks={managerQuickLinks}
     >
       <AnimatedCard
-        reveal={false}
+        index={0}
         className="gap-4 rounded-[20px] bg-hercules-red px-5 py-6"
       >
         <View className="gap-2">
@@ -61,7 +62,7 @@ export default function ManagerHomeScreen() {
         >
           {prospectData ? (
             <>
-              <AnimatedCard reveal={false} className="flex-row gap-4">
+              <AnimatedCard index={1} className="flex-row gap-4">
                 <View className="flex-1 gap-2 rounded-[16px] border border-hercules-blue/15 bg-hercules-white p-4">
                   <Text className="text-xs font-extrabold uppercase tracking-[0.3px] text-hercules-muted">
                     Assigned Dealers
@@ -86,7 +87,7 @@ export default function ManagerHomeScreen() {
                 </View>
               </AnimatedCard>
 
-              <AnimatedCard reveal={false} className="gap-3">
+              <AnimatedCard index={2} className="gap-3">
                 <SectionHeader
                   title="Dealers to Support"
                   actionLabel="View All"
@@ -131,7 +132,7 @@ export default function ManagerHomeScreen() {
 
 function ManagerSupportLinks() {
   return (
-    <AnimatedCard reveal={false}>
+    <AnimatedCard index={3}>
       <RelatedLinks
           title="Technical Support"
         links={[
@@ -185,108 +186,42 @@ function ManagerHomeSkeleton() {
       </View>
       <View className="gap-3">
         <SkeletonSectionHeader widthClassName="w-2/5" showAction />
-        <View className="overflow-hidden rounded-[18px] border border-hercules-blue/15 bg-hercules-white">
+        <ListGroup>
           {Array.from({ length: 2 }, (_, index) => (
-            <ManagerHomeListRowSkeleton
+            <SkeletonListRow
+            subtitleWidthClassNames={['w-4/5', 'w-3/5']}
+            chevronWidthClassName="w-2"
               key={`manager-home-dealer-${index}`}
               iconTone={index === 0 ? 'red' : 'blue'}
               subtitleLines={2}
               metaWidth={83}
-              showChevron
+              trailing="meta-chevron"
               isLast={index === 1}
             />
           ))}
-        </View>
+        </ListGroup>
       </View>
       <View className="gap-3">
         <SkeletonSectionHeader widthClassName="w-1/3" />
         <View className="gap-3">
-          <ManagerHomeListRowSkeleton
+          <SkeletonListRow
+            subtitleWidthClassNames={['w-4/5', 'w-3/5']}
+            chevronWidthClassName="w-2"
             variant="card"
             iconTone="red"
             subtitleLines={2}
-            showChevron
+            trailing="chevron"
           />
-          <ManagerHomeListRowSkeleton
+          <SkeletonListRow
+            subtitleWidthClassNames={['w-4/5', 'w-3/5']}
+            chevronWidthClassName="w-2"
             variant="card"
             iconTone="blue"
             subtitleLines={2}
-            showChevron
+            trailing="chevron"
           />
         </View>
       </View>
     </SkeletonReveal>
-  );
-}
-
-type ManagerHomeListRowSkeletonProps = {
-  iconTone: 'red' | 'blue';
-  subtitleLines: 1 | 2;
-  variant?: 'card' | 'row';
-  metaWidth?: number;
-  showChevron?: boolean;
-  isLast?: boolean;
-};
-
-function ManagerHomeListRowSkeleton({
-  iconTone,
-  subtitleLines,
-  variant = 'row',
-  metaWidth,
-  showChevron = false,
-  isLast = false,
-}: ManagerHomeListRowSkeletonProps) {
-  const containerClassName =
-    variant === 'card'
-      ? 'min-h-[76px] flex-row items-center gap-3 rounded-[16px] border border-hercules-blue/15 bg-hercules-white px-4 py-3'
-      : `min-h-[76px] flex-row items-center gap-3 px-4 py-3 ${
-          isLast ? '' : 'border-b border-hercules-blue/10'
-        }`;
-
-  return (
-    <View className={containerClassName}>
-      <View
-        className={`h-10 w-10 shrink-0 rounded-[12px] ${
-          iconTone === 'red'
-            ? 'bg-hercules-red/15'
-            : 'bg-hercules-blue/15'
-        }`}
-      />
-      <View className="min-w-0 flex-1 gap-1">
-        <View className="h-5 justify-center">
-          <SkeletonLine className="h-4 w-4/5" />
-        </View>
-        <View>
-          {Array.from({ length: subtitleLines }, (_, index) => (
-            <View
-              key={`manager-home-subtitle-${index}`}
-              className="h-5 justify-center"
-            >
-              <SkeletonLine
-                className={`h-3 ${index === 0 ? 'w-4/5' : 'w-3/5'}`}
-                subtle
-              />
-            </View>
-          ))}
-        </View>
-      </View>
-      {metaWidth || showChevron ? (
-        <View className="shrink-0 flex-row items-center justify-end gap-2">
-          {metaWidth ? (
-            <View
-              className="h-4 justify-center"
-              style={{ width: metaWidth }}
-            >
-              <SkeletonLine className="h-3 w-full" subtle />
-            </View>
-          ) : null}
-          {showChevron ? (
-            <View className="h-6 w-4 items-center justify-center">
-              <SkeletonLine className="h-5 w-2" subtle />
-            </View>
-          ) : null}
-        </View>
-      ) : null}
-    </View>
   );
 }

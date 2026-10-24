@@ -1,3 +1,5 @@
+import { nativeStyles } from '../../lib/theme/nativeStyles';
+import { motionConfig } from '../../lib/motionConfig';
 import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 import { BrandImage } from './BrandImage';
@@ -31,7 +33,7 @@ export function AppLogo({ compact = false, size }: AppLogoProps) {
           priority="high"
           source={herculesMark}
           style={styles.image}
-          transition={0}
+          transition={motionConfig.native.imageTransition}
         />
       ) : (
         <BrandImage asset="logoHeader" style={styles.image} />
@@ -40,9 +42,4 @@ export function AppLogo({ compact = false, size }: AppLogoProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  image: {
-    height: '100%',
-    width: '100%',
-  },
-});
+const styles = StyleSheet.create(nativeStyles.branding);

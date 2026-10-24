@@ -1,9 +1,9 @@
+import { nativeStyles } from '../../lib/theme/nativeStyles';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
-  Easing,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -12,58 +12,49 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { colors } from '../../lib/theme/theme';
+import { brandLaunchTiming } from '../../lib/feedbackMotion';
+import { motionConfig } from '../../lib/motionConfig';
 import { BrandImage } from './BrandImage';
+
+const motion = motionConfig.feedback;
+
 
 type BrandLaunchScreenProps = {
   leaving?: boolean;
 };
 
-export const brandLaunchExitDuration = 320;
+export const brandLaunchExitDuration = motion.launch.exit.duration;
 
 export function BrandLaunchScreen({
   leaving = false,
 }: BrandLaunchScreenProps) {
   const reduceMotion = useReducedMotion();
-  const intro = useSharedValue(0);
-  const accent = useSharedValue(0);
-  const pulse = useSharedValue(0);
-  const exit = useSharedValue(0);
+  const intro = useSharedValue<number>(motion.progress.idle);
+  const accent = useSharedValue<number>(motion.progress.idle);
+  const pulse = useSharedValue<number>(motion.progress.idle);
+  const exit = useSharedValue<number>(motion.progress.idle);
 
   useEffect(() => {
-    const introDuration = reduceMotion ? 1 : 744;
-    const accentDuration = reduceMotion ? 1 : 528;
+    const timing = brandLaunchTiming(reduceMotion);
 
-    intro.value = withTiming(1, {
-      duration: introDuration,
-      easing: Easing.out(Easing.cubic),
-    });
+    intro.value = withTiming(motion.progress.active, timing.intro);
     accent.value = withDelay(
-      reduceMotion ? 0 : 300,
-      withTiming(1, {
-        duration: accentDuration,
-        easing: Easing.out(Easing.cubic),
-      }),
+      reduceMotion ? motion.launch.reducedDelay : motion.launch.accent.delay,
+      withTiming(motion.progress.active, timing.accent),
     );
 
     if (reduceMotion) {
-      pulse.value = 0.5;
+      pulse.value = motion.launch.pulse.reducedValue;
     } else {
       pulse.value = withDelay(
-        760,
+        motion.launch.pulse.delay,
         withRepeat(
           withSequence(
-            withTiming(1, {
-              duration: 820,
-              easing: Easing.inOut(Easing.cubic),
-            }),
-            withTiming(0, {
-              duration: 820,
-              easing: Easing.inOut(Easing.cubic),
-            }),
+            withTiming(motion.progress.active, timing.pulse),
+            withTiming(motion.progress.idle, timing.pulse),
           ),
-          -1,
-          false,
+          motion.launch.pulse.repeatCount,
+          motion.launch.pulse.reverse,
         ),
       );
     }
@@ -76,36 +67,43 @@ export function BrandLaunchScreen({
   }, [accent, intro, pulse, reduceMotion]);
 
   useEffect(() => {
-    exit.value = withTiming(leaving ? 1 : 0, {
-      duration: reduceMotion ? 1 : brandLaunchExitDuration,
-      easing: Easing.inOut(Easing.cubic),
-    });
+    exit.value = withTiming(
+      leaving ? motion.progress.active : motion.progress.idle,
+      brandLaunchTiming(reduceMotion).exit,
+    );
   }, [exit, leaving, reduceMotion]);
 
   const overlayStyle = useAnimatedStyle(() => ({
-    opacity: 1 - exit.value,
-    transform: [{ translateY: -5 * exit.value }],
+    opacity: motion.opacity.visible - exit.value,
+    transform: [{ translateY: motion.launch.exit.translateY * exit.value }],
   }));
 
   const logoStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateY: -27 * intro.value },
-      { scale: 1 - 0.02 * intro.value },
+      { translateY: motion.launch.logo.translateY * intro.value },
+      {
+        scale: motion.launch.logo.initialScale -
+          (motion.launch.logo.initialScale - motion.launch.logo.finalScale) * intro.value,
+      },
     ],
   }));
 
   const detailsStyle = useAnimatedStyle(() => ({
     opacity: accent.value,
-    transform: [{ translateY: 8 * (1 - accent.value) }],
+    transform: [{
+      translateY: motion.launch.details.translateY * (motion.progress.active - accent.value),
+    }],
   }));
 
   const redAccentStyle = useAnimatedStyle(() => ({
-    opacity: 0.62 + 0.38 * pulse.value,
+    opacity: motion.launch.redAccent.minOpacity +
+      (motion.launch.redAccent.maxOpacity - motion.launch.redAccent.minOpacity) * pulse.value,
     transform: [{ scaleX: accent.value }],
   }));
 
   const blueAccentStyle = useAnimatedStyle(() => ({
-    opacity: 1 - 0.28 * pulse.value,
+    opacity: motion.launch.blueAccent.maxOpacity -
+      (motion.launch.blueAccent.maxOpacity - motion.launch.blueAccent.minOpacity) * pulse.value,
     transform: [{ scaleX: accent.value }],
   }));
 
@@ -116,11 +114,7 @@ export function BrandLaunchScreen({
       pointerEvents="auto"
       style={[styles.overlay, overlayStyle]}
     >
-      <StatusBar
-        animated
-        backgroundColor={colors.white}
-        style="dark"
-      />
+      <StatusBar animated={motion.launch.statusBarAnimated} style="dark" />
 
       <View style={styles.stage}>
         <Animated.View style={[styles.logoFrame, logoStyle]}>
@@ -149,66 +143,4 @@ export function BrandLaunchScreen({
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    backgroundColor: colors.white,
-    justifyContent: 'center',
-    zIndex: 1000,
-  },
-  stage: {
-    height: 172,
-    position: 'relative',
-    width: 312,
-  },
-  logoFrame: {
-    height: 67,
-    left: 30,
-    position: 'absolute',
-    top: 52.5,
-    width: 252,
-  },
-  logo: {
-    height: '100%',
-    width: '100%',
-  },
-  details: {
-    alignItems: 'center',
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 106,
-  },
-  title: {
-    color: colors.blue,
-    fontSize: 15,
-    fontWeight: '800',
-    letterSpacing: 2.15,
-    lineHeight: 20,
-  },
-  subtitle: {
-    color: colors.red,
-    fontSize: 9.5,
-    fontWeight: '700',
-    letterSpacing: 1.05,
-    lineHeight: 15,
-    marginTop: 1,
-  },
-  accentRow: {
-    flexDirection: 'row',
-    gap: 5,
-    marginTop: 12,
-  },
-  accent: {
-    borderRadius: 999,
-    height: 3,
-    width: 54,
-  },
-  redAccent: {
-    backgroundColor: colors.red,
-  },
-  blueAccent: {
-    backgroundColor: colors.blue,
-  },
-});
+const styles = StyleSheet.create(nativeStyles.brandLaunch);

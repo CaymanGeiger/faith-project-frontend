@@ -1,3 +1,4 @@
+import { nativeStyles } from '../../../lib/theme/nativeStyles';
 import { useMemo } from 'react';
 import {
   FlatList,
@@ -14,30 +15,35 @@ import { MessageBubble } from './MessageBubble';
 import { MessageComposer } from './MessageComposer';
 import { TypingIndicator } from './TypingIndicator';
 import { CURRENT_TERMS_VERSION } from '../../legal/legal';
+import { isSameMessageDay, messageDayLabel } from '../messageDates';
 
 type MessageThreadProps = {
   conversationId: string | null;
   messages: Message[];
   currentUser: User;
+  participantName: string;
   loading?: boolean;
   error?: string | null;
   typing?: boolean;
-  onSend: (body: string) => Promise<void>;
+  onSend: (body: string, clientMessageId: string) => Promise<void>;
   onTypingStart: () => void;
   onTypingStop: () => void;
   onReportMessage: (message: Message) => void;
   blockedByCurrentUser?: boolean;
   blockedByParticipant?: boolean;
-  onBlockParticipant: () => void;
   onUnblockParticipant: () => void;
   onReviewTerms: () => void;
   readyToSend?: boolean;
+  hasOlder?: boolean;
+  loadingOlder?: boolean;
+  onLoadOlder?: () => void;
 };
 
 export function MessageThread({
   conversationId,
   messages,
   currentUser,
+  participantName,
   loading,
   error,
   typing,
@@ -47,10 +53,10 @@ export function MessageThread({
   onReportMessage,
   blockedByCurrentUser,
   blockedByParticipant,
-  onBlockParticipant,
   onUnblockParticipant,
   onReviewTerms,
   readyToSend,
+  hasOlder, loadingOlder, onLoadOlder,
 }: MessageThreadProps) {
   const newestFirst = useMemo(() => [...messages].reverse(), [messages]);
   const { height: windowHeight } = useWindowDimensions();
@@ -61,8 +67,12 @@ export function MessageThread({
 
   return (
     <View
-      className="gap-2 border-t border-hercules-blue/10 pt-3"
-      style={{ height: threadHeight }}
+      className="gap-2 border-t border-hercules-blue/15 pt-3"
+      // Let the list shrink when the keyboard reduces the sheet's available space.
+      style={[
+        { height: threadHeight },
+        { flexShrink: 1, minHeight: 0 },
+      ]}
     >
       <View className="flex-1">
         {error ? <ErrorState message={error} /> : null}
@@ -72,14 +82,21 @@ export function MessageThread({
           <FlatList
             key={conversationId ?? 'chat'}
             data={newestFirst}
+            ListFooterComponent={hasOlder ? <Pressable accessibilityRole="button" disabled={loadingOlder} onPress={onLoadOlder} className="min-h-11 items-center justify-center"><Text className="font-bold text-hercules-blue">{loadingOlder ? 'Loading…' : 'Load older messages'}</Text></Pressable> : null}
             inverted
             keyExtractor={(message) => message.id}
-            renderItem={({ item: message }) => (
+            renderItem={({ item: message, index }) => (
+              <View>
+                {!newestFirst[index + 1] || !isSameMessageDay(message.createdAt, newestFirst[index + 1].createdAt) ? (
+                  <Text accessibilityRole="header" className="pb-5 pt-3 text-center text-[11px] leading-4 text-hercules-muted">{messageDayLabel(message.createdAt)}</Text>
+                ) : null}
               <MessageBubble
                 message={message}
                 mine={message.senderId === currentUser.id}
+                senderName={message.senderId === currentUser.id ? currentUser.firstName : participantName}
                 onReport={onReportMessage}
               />
+              </View>
             )}
             contentContainerStyle={styles.listContent}
             keyboardShouldPersistTaps="handled"
@@ -106,23 +123,13 @@ export function MessageThread({
       ) : blockedByParticipant ? (
         <ConversationNotice message="Messaging is unavailable in this conversation." />
       ) : (
-        <>
-          <Pressable
-            accessibilityRole="button"
-            onPress={onBlockParticipant}
-            className="min-h-9 self-start justify-center px-1"
-          >
-            <Text className="text-xs font-extrabold text-hercules-red">
-              Block participant
-            </Text>
-          </Pressable>
           <MessageComposer
             onSend={onSend}
             onTypingStart={onTypingStart}
             onTypingStop={onTypingStop}
             disabled={!readyToSend}
+            recipientName={participantName}
           />
-        </>
       )}
     </View>
   );
@@ -180,8 +187,8 @@ function MessageThreadSkeleton({
           <View
             className={`${row.height} rounded-[18px] ${row.width} ${
               row.mine
-                ? 'bg-hercules-red/15'
-                : 'border border-hercules-blue/15 bg-hercules-blue/10'
+                ? 'bg-hercules-blue/15'
+                : 'bg-hercules-blue/[0.06]'
             }`}
           />
         </View>
@@ -190,9 +197,4 @@ function MessageThreadSkeleton({
   );
 }
 
-const styles = StyleSheet.create({
-  listContent: {
-    gap: 10,
-    paddingVertical: 4,
-  },
-});
+const styles = StyleSheet.create(nativeStyles.messageThread);

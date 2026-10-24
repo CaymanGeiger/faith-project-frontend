@@ -1,6 +1,12 @@
+import { validateDeploymentEnvironment } from './deployment-config.mjs';
+
 if (!process.env.VERCEL) {
   console.log('Skipping deployed-web endpoint validation outside Vercel.');
   process.exit(0);
+}
+
+if (process.env.VERCEL_ENV === 'production') {
+  validateDeploymentEnvironment(process.env, 'production');
 }
 
 const endpoints = [

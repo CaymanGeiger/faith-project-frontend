@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
+import { isValidTrainingSelection } from './trainingAvailability';
 import {
   ClassSession,
   EquipmentRegistration,
@@ -11,6 +12,16 @@ import {
 
 const gettingStartedDraftKey = (userId: string) =>
   `@hercules/getting-started-draft:${userId}`;
+const gettingStartedSecureDraftKey = (userId: string) =>
+  `hercules.getting-started-draft.${userId}`;
+
+async function hasSecureDraftStorage() {
+  try {
+    return await SecureStore.isAvailableAsync();
+  } catch {
+    return false;
+  }
+}
 
 export const gettingStartedSteps = [
   'Business Profile',
@@ -20,6 +31,25 @@ export const gettingStartedSteps = [
   'First LG System',
   'Review',
 ] as const;
+
+export const gettingStartedStepKeys = [
+  'profile',
+  'training',
+  'warranties',
+  'marketing',
+  'equipment',
+] as const;
+
+export function getGettingStartedStepIndex(step?: string) {
+  if (!step) {
+    return null;
+  }
+
+  const index = gettingStartedStepKeys.indexOf(
+    step as (typeof gettingStartedStepKeys)[number],
+  );
+  return index === -1 ? null : index;
+}
 
 export type GettingStartedData = {
   user: User & { prospectProfile?: ProspectProfile };
@@ -67,14 +97,18 @@ export async function getGettingStartedDraft(
   userId: string,
 ): Promise<GettingStartedDraft | null> {
   const storageKey = gettingStartedDraftKey(userId);
-  let stored = await SecureStore.getItemAsync(storageKey);
+  const secureStorageKey = gettingStartedSecureDraftKey(userId);
+  const secureStorageAvailable = await hasSecureDraftStorage();
+  let stored = secureStorageAvailable
+    ? await SecureStore.getItemAsync(secureStorageKey)
+    : null;
   if (!stored) {
     const legacyStored = await AsyncStorage.getItem(storageKey);
-    if (legacyStored) {
-      await SecureStore.setItemAsync(storageKey, legacyStored);
+    if (legacyStored && secureStorageAvailable) {
+      await SecureStore.setItemAsync(secureStorageKey, legacyStored);
       await AsyncStorage.removeItem(storageKey);
-      stored = legacyStored;
     }
+    stored = legacyStored;
   }
   if (!stored) {
     return null;
@@ -83,10 +117,14 @@ export async function getGettingStartedDraft(
   try {
     return JSON.parse(stored) as GettingStartedDraft;
   } catch {
-    await Promise.all([
-      SecureStore.deleteItemAsync(storageKey),
-      AsyncStorage.removeItem(storageKey),
-    ]);
+    await Promise.all(
+      [
+        secureStorageAvailable
+          ? SecureStore.deleteItemAsync(secureStorageKey)
+          : null,
+        AsyncStorage.removeItem(storageKey),
+      ].filter((operation): operation is Promise<void> => Boolean(operation)),
+    );
     return null;
   }
 }
@@ -96,10 +134,15 @@ export async function saveGettingStartedDraft(
   update: Partial<GettingStartedDraft>,
 ) {
   const existing = (await getGettingStartedDraft(userId)) ?? {};
-  await SecureStore.setItemAsync(
-    gettingStartedDraftKey(userId),
-    JSON.stringify({ ...existing, ...update }),
-  );
+  const storageKey = gettingStartedDraftKey(userId);
+  const secureStorageKey = gettingStartedSecureDraftKey(userId);
+  const value = JSON.stringify({ ...existing, ...update });
+  if (await hasSecureDraftStorage()) {
+    await SecureStore.setItemAsync(secureStorageKey, value);
+    await AsyncStorage.removeItem(storageKey);
+    return;
+  }
+  await AsyncStorage.setItem(storageKey, value);
 }
 
 export async function clearGettingStartedDraftFields(
@@ -107,6 +150,7 @@ export async function clearGettingStartedDraftFields(
   ...fields: (keyof GettingStartedDraft)[]
 ) {
   const storageKey = gettingStartedDraftKey(userId);
+  const secureStorageKey = gettingStartedSecureDraftKey(userId);
   const existing = await getGettingStartedDraft(userId);
   if (!existing) {
     return;
@@ -117,22 +161,31 @@ export async function clearGettingStartedDraftFields(
   });
 
   if (Object.keys(existing).length === 0) {
-    await Promise.all([
-      SecureStore.deleteItemAsync(storageKey),
-      AsyncStorage.removeItem(storageKey),
-    ]);
+    await clearGettingStartedDraft(userId);
     return;
   }
 
-  await SecureStore.setItemAsync(storageKey, JSON.stringify(existing));
+  const value = JSON.stringify(existing);
+  if (await hasSecureDraftStorage()) {
+    await SecureStore.setItemAsync(secureStorageKey, value);
+    await AsyncStorage.removeItem(storageKey);
+    return;
+  }
+  await AsyncStorage.setItem(storageKey, value);
 }
 
 export async function clearGettingStartedDraft(userId: string) {
   const storageKey = gettingStartedDraftKey(userId);
-  await Promise.all([
-    SecureStore.deleteItemAsync(storageKey),
-    AsyncStorage.removeItem(storageKey),
-  ]);
+  const secureStorageKey = gettingStartedSecureDraftKey(userId);
+  const secureStorageAvailable = await hasSecureDraftStorage();
+  await Promise.all(
+    [
+      secureStorageAvailable
+        ? SecureStore.deleteItemAsync(secureStorageKey)
+        : null,
+      AsyncStorage.removeItem(storageKey),
+    ].filter((operation): operation is Promise<void> => Boolean(operation)),
+  );
 }
 
 export function getGettingStartedCompletion(data: GettingStartedData) {
@@ -144,11 +197,7 @@ export function getGettingStartedCompletion(data: GettingStartedData) {
         data.user.lastName &&
         profile?.companyName,
     ),
-    data.classes.some(
-      (session) =>
-        session.enrollmentStatus === 'ENROLLED' ||
-        session.enrollmentStatus === 'COMPLETED',
-    ),
+    data.user.onboarding?.state === 'TRAINING_VERIFIED' || data.classes.some(isValidTrainingSelection),
     data.todos.some(
       (todo) => todo.type === 'JB_WARRANTIES' && todo.status === 'COMPLETED',
     ),
@@ -160,4 +209,19 @@ export function getGettingStartedCompletion(data: GettingStartedData) {
 export function getFirstIncompleteStep(completion: boolean[]) {
   const incomplete = completion.findIndex((complete) => !complete);
   return incomplete === -1 ? gettingStartedSteps.length - 1 : incomplete;
+}
+
+export function getGettingStartedResumeStep(
+  completion: boolean[],
+  savedStep?: number,
+) {
+  if (
+    typeof savedStep === 'number' &&
+    Number.isInteger(savedStep) &&
+    savedStep >= 0 &&
+    savedStep < gettingStartedSteps.length
+  ) {
+    return savedStep;
+  }
+  return getFirstIncompleteStep(completion);
 }

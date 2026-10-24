@@ -1,0 +1,24 @@
+{
+  "palette": { "red": "#CE2127", "white": "#FFFFFF", "blue": "#0A2D7F" },
+  "surfaces": {
+    "document": "#F3F5F9",
+    "documentBorder": "#E7EBF3",
+    "skeletonLine": "#EEF1F7",
+    "skeletonBlock": "#F4F6FA",
+    "actionShadow": "#001F5B",
+    "navBackdropTint": "#000000"
+  },
+  "opacity": {
+    "muted": 0.68,
+    "inputBorder": 0.22,
+    "drawerBackdrop": 0.34,
+    "border": 0.15,
+    "softBorder": 0.12,
+    "closeBorder": 0.14,
+    "pressedSurface": 0.08,
+    "progressTrack": 0.06
+  },
+  "spacing": { "screenX": 20, "section": 24, "row": 14 },
+  "radius": { "card": 22, "pill": 999, "input": 18 },
+  "fontFamily": ["System"]
+}

@@ -59,8 +59,18 @@ for (const [profileName, channel] of requiredProfiles) {
 if (easJson.build?.preview?.distribution !== 'internal') {
   failures.push('preview builds must remain internally distributed');
 }
-if (easJson.build?.preview?.environment !== 'production') {
-  failures.push('preview builds must use the approved EAS production environment values');
+for (const profileName of ['internal', 'preview', 'production']) {
+  const environment = profileName === 'production' ? 'production' : 'preview';
+  const enabled = environment === 'production' ? 'false' : 'true';
+  const profile = easJson.build?.[profileName];
+  if (profile?.environment !== environment || profile.env?.EXPO_PUBLIC_APP_ENV !== environment) {
+    failures.push(`${profileName} builds must select the EAS ${environment} environment and EXPO_PUBLIC_APP_ENV=${environment}`);
+  }
+  for (const flag of ['EXPO_PUBLIC_DEV_FEATURES_ENABLED', 'EXPO_PUBLIC_DEV_TRAINING_TOGGLE']) {
+    if (profile?.env?.[flag] !== enabled) {
+      failures.push(`${profileName} builds must set ${flag}=${enabled}`);
+    }
+  }
 }
 if (easJson.build?.production?.distribution !== 'store') {
   failures.push('production builds must remain store-distributed');

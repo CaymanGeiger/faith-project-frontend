@@ -35,7 +35,7 @@ export default function AlreadyADealerScreen() {
     <AppScreen title="Existing Dealer" quickLinks={prospectQuickLinks}>
       <PageHero
         title="Existing Dealer"
-        subtitle="Keep track of training, resources, and dealer-program action items with Hercules."
+        subtitle="Keep track of training, resources, and dealer program tasks with Hercules."
       />
 
       {page.error && !page.data ? (
@@ -53,7 +53,7 @@ export default function AlreadyADealerScreen() {
                 <ListGroup>
                   <ListItem
                     title="Complete LG Training"
-                    subtitle="Review current training requirements and confirm the appropriate next step with Hercules."
+                    subtitle="Review current training requirements and confirm your next step with Hercules."
                     meta={trainingStatus(summary)}
                     icon={CalendarDays}
                     iconTone="red"
@@ -67,7 +67,12 @@ export default function AlreadyADealerScreen() {
                     icon={ShieldCheck}
                     iconTone="blue"
                     variant="row"
-                    onPress={() => router.push('/prospect/getting-started')}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/prospect/getting-started',
+                        params: { step: 'warranties' },
+                      })
+                    }
                   />
                   <ListItem
                     title="Share Marketing Availability"
@@ -86,15 +91,22 @@ export default function AlreadyADealerScreen() {
                     iconTone="blue"
                     variant="row"
                     isLast
-                    onPress={() => router.push('/prospect/getting-started')}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/prospect/getting-started',
+                        params: { step: 'equipment' },
+                      })
+                    }
                   />
                 </ListGroup>
               </AnimatedCard>
 
-              <RelatedLinks
-                title="Keep your benefits working"
-                links={dealerLinks}
-              />
+              <AnimatedCard index={2}>
+                <RelatedLinks
+                  title="Keep your benefits working"
+                  links={dealerLinks}
+                />
+              </AnimatedCard>
             </>
           ) : null}
         </AsyncContent>
@@ -106,7 +118,7 @@ export default function AlreadyADealerScreen() {
 const dealerLinks = [
   {
     title: 'Benefits',
-    description: 'See what is available now and what action comes next.',
+    description: 'See what is available now and what to do next.',
     href: '/prospect/benefits',
     icon: BadgeDollarSign,
     tone: 'red',

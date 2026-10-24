@@ -3,16 +3,14 @@ import { Pressable } from 'react-native';
 import { Bell, LoaderCircle } from 'lucide-react-native';
 import Animated, {
   cancelAnimation,
-  Easing,
   interpolate,
-  ReduceMotion,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { motionDuration, motionEasing } from '../../lib/motion';
+import { headerMotion, headerMotionConfig } from '../../lib/headerMotion';
 import { colors } from '../../lib/theme/theme';
 import {
   headerControlClassName,
@@ -35,48 +33,38 @@ export function AnimatedNotificationButton({
   const rotation = useSharedValue(0);
 
   useEffect(() => {
-    progress.value = withTiming(loading ? 1 : 0, {
-      duration: motionDuration.micro,
-      easing: motionEasing.enter,
-      reduceMotion: ReduceMotion.System,
-    });
+    progress.value = withTiming(loading ? 1 : 0, headerMotion.control);
 
     if (loading && !reduceMotion) {
       rotation.value = 0;
       rotation.value = withRepeat(
-        withTiming(360, {
-          duration: 820,
-          easing: Easing.linear,
-          reduceMotion: ReduceMotion.Never,
-        }),
-        -1,
-        false,
+        withTiming(headerMotionConfig.spinner.rotationDegrees, headerMotion.spinner),
+        headerMotionConfig.spinner.repeatCount,
+        headerMotionConfig.spinner.reverse,
       );
-      return;
+      return () => cancelAnimation(rotation);
     }
 
     cancelAnimation(rotation);
-    rotation.value = withTiming(0, {
-      duration: motionDuration.micro,
-      easing: motionEasing.enter,
-      reduceMotion: ReduceMotion.System,
-    });
+    rotation.value = withTiming(0, headerMotion.control);
+
+    return () => cancelAnimation(rotation);
   }, [loading, progress, reduceMotion, rotation]);
 
   const bellStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 0.5, 1], [1, 0, 0]),
+    opacity: interpolate(progress.value, [0, headerMotionConfig.notificationIcon.crossfadeAt, 1], [1, 0, 0]),
     transform: [
-      { scale: interpolate(progress.value, [0, 1], [1, 0.78]) },
+      { scale: interpolate(progress.value, [0, 1], [1, headerMotionConfig.notificationIcon.hiddenScale]) },
       {
-        rotateZ: `${interpolate(progress.value, [0, 1], [0, -12])}deg`,
+        rotateZ: `${interpolate(progress.value, [0, 1], [0, -headerMotionConfig.notificationIcon.rotationDegrees])}deg`,
       },
     ],
   }));
 
   const spinnerStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 0.5, 1], [0, 0, 1]),
+    opacity: interpolate(progress.value, [0, headerMotionConfig.notificationIcon.crossfadeAt, 1], [0, 0, 1]),
     transform: [
-      { scale: interpolate(progress.value, [0, 1], [0.78, 1]) },
+      { scale: interpolate(progress.value, [0, 1], [headerMotionConfig.notificationIcon.hiddenScale, 1]) },
       { rotateZ: `${rotation.value}deg` },
     ],
   }));

@@ -1,0 +1,117 @@
+import { colors, shades } from './theme';
+
+/** Shared visual contracts. Keep variant values explicit so a theme edit does not normalize distinct designs. */
+export const componentStyles = {
+  screen: {
+    root: 'flex-1 bg-hercules-white',
+    fill: 'flex-1',
+    content: 'gap-6 px-5 pb-8 pt-6',
+  },
+  listItem: {
+    editorial: {
+      container: 'min-h-[80px] flex-row items-start gap-3 bg-hercules-white py-4',
+      cardDivider: 'border-b border-hercules-blue/15',
+      icon: 'mt-0.5 h-8 w-8 rounded-[8px]',
+      iconSize: 19,
+      title: 'text-[16px] font-semibold leading-5 text-hercules-ink',
+    },
+    compact: {
+      row: 'min-h-[76px] flex-row items-center gap-3 px-4 py-3',
+      card: 'min-h-[76px] flex-row items-center gap-3 rounded-[16px] border border-hercules-blue/15 bg-hercules-white px-4 py-3',
+      icon: 'h-10 w-10 rounded-[12px]',
+      iconSize: 21,
+      title: 'text-[16px] font-bold leading-5 text-hercules-ink',
+    },
+    rowDivider: 'border-b border-hercules-blue/10',
+    iconContainer: 'shrink-0 items-center justify-center',
+    iconTone: { red: 'bg-hercules-red', blue: 'bg-hercules-blue' },
+    iconStrokeWidth: 2.4,
+    content: 'min-w-0 flex-1 gap-1',
+    subtitle: 'text-sm leading-5 text-hercules-muted',
+    meta: 'text-xs font-semibold leading-4 text-hercules-muted',
+    trailing: 'shrink-0 flex-row items-center justify-end gap-2 self-center',
+    trailingMeta: 'max-w-[88px] text-right text-xs font-semibold leading-4 text-hercules-muted',
+    chevronContainer: 'h-6 w-4 items-center justify-center',
+    chevronSize: 18,
+    pressed: 'active:opacity-70',
+    group: 'border-y border-hercules-blue/15 bg-hercules-white',
+  },
+  button: {
+    label: 'text-center text-base font-bold text-hercules-white',
+    primary: {
+      wrapper: 'w-full',
+      container: 'h-14 items-center justify-center overflow-hidden bg-hercules-red px-5 active:opacity-90 disabled:opacity-50',
+      shape: { rounded: 'rounded-[16px]', pill: 'rounded-pill' },
+      content: 'flex-1 flex-row items-center justify-center gap-2',
+      spinner: 'items-center justify-center',
+      iconSize: 18,
+      iconStrokeWidth: 2.4,
+    },
+    secondary: {
+      container: 'min-h-14 flex-row items-center justify-center gap-2 rounded-pill bg-hercules-blue px-5 active:opacity-80 disabled:opacity-50',
+      iconSize: 17,
+      iconStrokeWidth: 2.3,
+    },
+  },
+  input: {
+    wrapper: 'gap-2',
+    compactWrapper: 'gap-1.5',
+    label: 'text-sm font-bold text-hercules-ink',
+    container: 'rounded-[14px] border border-hercules-blue bg-hercules-white px-4 text-base text-hercules-ink',
+    size: {
+      multiline: 'min-h-24 py-3',
+      compact: 'h-12 py-0',
+      regular: 'h-14 py-0',
+    },
+    unfocusedBorderColor: shades.inputBorder,
+    native: {
+      singleLine: {
+        fontSize: 16,
+        lineHeight: 20,
+        paddingTop: 0,
+        paddingBottom: 0,
+        textAlignVertical: 'center',
+      },
+      multiline: {
+        fontSize: 16,
+        lineHeight: 20,
+        textAlignVertical: 'top',
+      },
+    },
+  },
+  drawer: {
+    root: 'flex-1 justify-end',
+    surface: 'max-h-[88%] rounded-t-[28px] bg-hercules-white px-5 pb-8 pt-4',
+    header: 'mb-4 flex-row items-center justify-between gap-3',
+    title: 'min-w-0 flex-1 text-xl font-extrabold text-hercules-ink',
+    closeButton: 'h-11 w-11 shrink-0 items-center justify-center rounded-full bg-hercules-white active:opacity-70',
+    minimumBottomPadding: 32,
+    closeHitSlop: 8,
+    closeIconSize: 20,
+    native: {
+      backdrop: { backgroundColor: shades.drawerBackdrop },
+      sheet: {
+        // Animated surfaces need explicit base styles on web as well as NativeWind classes.
+        backgroundColor: colors.white,
+        maxHeight: '88%',
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        paddingHorizontal: 20,
+        paddingTop: 16,
+        paddingBottom: 32,
+        borderWidth: 1,
+        borderBottomWidth: 0,
+        borderColor: shades.softBorder,
+        shadowColor: colors.blue,
+        shadowOffset: { width: 0, height: -10 },
+        shadowOpacity: 0.12,
+        shadowRadius: 20,
+        elevation: 18,
+      },
+      closeButton: {
+        borderWidth: 1,
+        borderColor: shades.closeBorder,
+      },
+    },
+  },
+} as const;

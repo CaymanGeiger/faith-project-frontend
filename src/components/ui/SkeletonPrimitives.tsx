@@ -1,4 +1,5 @@
 import { View } from 'react-native';
+import { ListGroup } from './ListGroup';
 
 type SkeletonLineProps = {
   className: string;
@@ -43,7 +44,11 @@ type SkeletonListRowProps = {
   isLast?: boolean;
   titleLines?: 1 | 2;
   subtitleLines?: 0 | 1 | 2;
+  subtitleWidthClassNames?: readonly string[];
   metaLines?: 1 | 2;
+  metaWidthClassName?: string;
+  metaWidth?: number;
+  chevronWidthClassName?: string;
   trailing?: 'none' | 'chevron' | 'meta' | 'meta-chevron';
   variant?: 'card' | 'row';
 };
@@ -54,22 +59,26 @@ export function SkeletonListRow({
   isLast = false,
   titleLines = 1,
   subtitleLines = 1,
+  subtitleWidthClassNames = ['w-3/5', 'w-2/5'],
   metaLines = 1,
+  metaWidthClassName,
+  metaWidth,
+  chevronWidthClassName = 'w-4',
   trailing = 'meta-chevron',
   variant = 'row',
 }: SkeletonListRowProps) {
   const containerClassName =
     variant === 'card'
-      ? 'min-h-[76px] flex-row items-center gap-3 rounded-[16px] border border-hercules-blue/15 bg-hercules-white px-4 py-3'
-      : `min-h-[76px] flex-row items-center gap-3 px-4 py-3 ${
+      ? 'min-h-[80px] flex-row items-start gap-3 border-b border-hercules-blue/15 bg-hercules-white py-4'
+      : `min-h-[80px] flex-row items-start gap-3 bg-hercules-white py-4 ${
           isLast ? '' : 'border-b border-hercules-blue/10'
         }`;
 
   return (
     <View className={containerClassName}>
       <View
-        className={`h-10 w-10 shrink-0 ${
-          iconShape === 'circle' ? 'rounded-full' : 'rounded-[12px]'
+        className={`mt-0.5 h-8 w-8 shrink-0 ${
+          iconShape === 'circle' ? 'rounded-full' : 'rounded-[8px]'
         } ${
           iconTone === 'red'
             ? 'bg-hercules-red/15'
@@ -98,7 +107,7 @@ export function SkeletonListRow({
               >
                 <SkeletonLine
                   className={`h-3 ${
-                    index === 0 ? 'w-3/5' : 'w-2/5'
+                    subtitleWidthClassNames[index] ?? (index === 0 ? 'w-3/5' : 'w-2/5')
                   }`}
                   subtle
                 />
@@ -106,29 +115,28 @@ export function SkeletonListRow({
             ))}
           </View>
         ) : null}
+        {trailing === 'meta' || trailing === 'meta-chevron' ? (
+          <View>
+            {Array.from({ length: metaLines }, (_, index) => (
+              <View
+                key={`skeleton-meta-${index}`}
+                className="h-4 justify-center"
+                style={index === 0 && metaWidth !== undefined ? { width: metaWidth } : undefined}
+              >
+                <SkeletonLine
+                  className={`h-3 ${index === 0
+                    ? metaWidth !== undefined ? 'w-full' : metaWidthClassName ?? 'w-16'
+                    : 'w-12'}`}
+                  subtle
+                />
+              </View>
+            ))}
+          </View>
+        ) : null}
       </View>
-      {trailing !== 'none' ? (
-        <View className="shrink-0 flex-row items-center justify-end gap-2">
-          {trailing === 'meta' || trailing === 'meta-chevron' ? (
-            <View>
-              {Array.from({ length: metaLines }, (_, index) => (
-                <View
-                  key={`skeleton-meta-${index}`}
-                  className="h-4 items-end justify-center"
-                >
-                  <SkeletonLine
-                    className={`h-3 ${index === 0 ? 'w-16' : 'w-12'}`}
-                    subtle
-                  />
-                </View>
-              ))}
-            </View>
-          ) : null}
-          {trailing === 'chevron' || trailing === 'meta-chevron' ? (
-            <View className="h-6 w-4 items-center justify-center">
-              <SkeletonLine className="h-5 w-4" subtle />
-            </View>
-          ) : null}
+      {trailing === 'chevron' || trailing === 'meta-chevron' ? (
+        <View className="h-6 w-4 shrink-0 items-center justify-center self-center">
+          <SkeletonLine className={`h-5 ${chevronWidthClassName}`} subtle />
         </View>
       ) : null}
     </View>
@@ -144,7 +152,7 @@ export function SkeletonListGroup({
   ...rowProps
 }: SkeletonListProps) {
   return (
-    <View className="overflow-hidden rounded-[18px] border border-hercules-blue/15 bg-hercules-white">
+    <ListGroup>
       {Array.from({ length: rows }, (_, index) => (
         <SkeletonListRow
           key={`skeleton-list-row-${index}`}
@@ -154,7 +162,7 @@ export function SkeletonListGroup({
           iconTone={index % 2 === 0 ? 'red' : 'blue'}
         />
       ))}
-    </View>
+    </ListGroup>
   );
 }
 

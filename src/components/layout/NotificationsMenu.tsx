@@ -1,17 +1,15 @@
+import { nativeStyles } from '../../lib/theme/nativeStyles';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { CalendarDays, MessageCircle } from 'lucide-react-native';
-import Animated, {
-  Easing,
-  FadeInDown,
-  FadeOut,
-  ReduceMotion,
-} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { useAuth } from '../../features/auth/AuthProvider';
+import { isUpcomingTraining } from '../../features/getting-started/trainingAvailability';
 import { classesApi, conversationsApi } from '../../lib/api/endpoints';
 import { formatShortDate, fullName } from '../../lib/format';
-import { motionDuration } from '../../lib/motion';
+import { headerMotion, headerMotionConfig } from '../../lib/headerMotion';
 import { ListItem } from '../ui/ListItem';
 import { floatingPanelStyles } from './floatingPanel';
 
@@ -33,8 +31,8 @@ type NotificationsMenuProps = {
   onClose: () => void;
 };
 
-const spinnerDelayMs = 140;
-const minimumSpinnerDurationMs = 240;
+const NotificationContent = Platform.OS === 'android' ? ScrollView : View;
+
 const notificationRequestTimeoutMs = 10_000;
 
 export function NotificationsMenu({
@@ -44,6 +42,9 @@ export function NotificationsMenu({
   onLoadingChange,
   onClose,
 }: NotificationsMenuProps) {
+  const { height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const android = Platform.OS === 'android';
   const { user } = useAuth();
   const [items, setItems] = useState<Notification[]>([]);
   const [ready, setReady] = useState(false);
@@ -69,7 +70,7 @@ export function NotificationsMenu({
       }
       spinnerShownAt = Date.now();
       onLoadingChange(true);
-    }, spinnerDelayMs);
+    }, headerMotionConfig.spinner.showDelay);
 
     setReady(false);
     setError(null);
@@ -117,7 +118,7 @@ export function NotificationsMenu({
             (session) =>
               (session.enrollmentStatus === 'ENROLLED' ||
                 session.enrollmentStatus === 'COMPLETED') &&
-              new Date(session.startsAt).getTime() >= Date.now(),
+              isUpcomingTraining(session),
           )
           .sort(
             (a, b) =>
@@ -149,7 +150,7 @@ export function NotificationsMenu({
         clearTimeout(spinnerTimer);
         if (active && spinnerShownAt) {
           const remainingDuration =
-            minimumSpinnerDurationMs - (Date.now() - spinnerShownAt);
+            headerMotionConfig.spinner.minimumDuration - (Date.now() - spinnerShownAt);
           if (remainingDuration > 0) {
             await new Promise((resolve) =>
               setTimeout(resolve, remainingDuration),
@@ -183,16 +184,13 @@ export function NotificationsMenu({
 
   return (
     <Animated.View
-      entering={FadeInDown.duration(288)
-        .easing(Easing.out(Easing.cubic))
-        .reduceMotion(ReduceMotion.System)}
-      exiting={FadeOut.duration(220)
-        .easing(Easing.inOut(Easing.cubic))
-        .reduceMotion(ReduceMotion.System)}
+      entering={headerMotion.notificationsEnter}
+      exiting={headerMotion.notificationsExit}
       style={[
         floatingPanelStyles.shell,
         styles.panel,
         { top: topOffset + 12 },
+        android ? { left: insets.left + 16, right: insets.right + 16, maxHeight: undefined } : undefined,
       ]}
     >
       <View style={floatingPanelStyles.surface}>
@@ -211,7 +209,10 @@ export function NotificationsMenu({
             </Text>
           </Pressable>
         </View>
-        <View className="px-3 pb-3 pt-2">
+        <NotificationContent
+          className="px-3 pb-3 pt-2"
+          style={android ? { maxHeight: Math.max(0, Math.min(380, height - topOffset - insets.bottom - 112)) } : undefined}
+        >
           {error ? (
             <Text className="px-2 py-4 text-center text-sm font-bold text-hercules-red">
               {error}
@@ -234,30 +235,17 @@ export function NotificationsMenu({
                   subtitleNumberOfLines={2}
                   metaNumberOfLines={2}
                   variant="row"
+                  presentation="compact"
                   isLast={index === items.length - 1}
                   onPress={() => openDestination(item.href)}
                 />
               ))}
             </View>
           )}
-        </View>
+        </NotificationContent>
       </View>
     </Animated.View>
   );
 }
 
-const styles = StyleSheet.create({
-  panel: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    zIndex: 40,
-    maxHeight: 460,
-  },
-  notificationGroup: {
-    borderColor: 'rgba(10, 45, 127, 0.12)',
-    borderRadius: 20,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-});
+const styles = StyleSheet.create(nativeStyles.notifications);

@@ -35,8 +35,12 @@ export function LeadStatusEditor({
   useEffect(() => {
     setStatus(lead.status);
     setNotes(lead.notes ?? '');
-    setSyncNotice(null);
   }, [lead]);
+
+  useEffect(() => {
+    setSyncNotice(null);
+    setError(null);
+  }, [prospectUserId]);
 
   const save = async () => {
     setSaving(true);
@@ -44,11 +48,14 @@ export function LeadStatusEditor({
     setSyncNotice(null);
     try {
       const result = await leadsApi.updateLead(prospectUserId, { status, notes });
-      await onSaved();
-      if (!result.sync.synced) {
-        setSyncNotice(
-          'Saved in Hercules Honors Rewards. External lead-system syncing is not configured for this app yet.',
-        );
+      const savedNotice = result.sync.synced
+        ? 'Lead saved.'
+        : 'Saved in Hercules Honors Rewards. External lead-system syncing is not configured for this app yet.';
+      setSyncNotice(savedNotice);
+      try {
+        await onSaved();
+      } catch {
+        setSyncNotice(`${savedNotice} Dealer details could not be refreshed. Reopen this dealer to refresh them.`);
       }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Unable to save');

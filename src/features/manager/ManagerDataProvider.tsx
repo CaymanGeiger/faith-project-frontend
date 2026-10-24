@@ -68,8 +68,8 @@ export function ManagerDataProvider({
   userId,
   token,
 }: ManagerDataProviderProps) {
-  const prospectsQuery = useAsyncData(leadsApi.prospects, [userId]);
-  const supportQuery = useAsyncData(loadManagerSupport, [userId]);
+  const prospectsQuery = useAsyncData(leadsApi.prospects, [userId], 60_000);
+  const supportQuery = useAsyncData(loadManagerSupport, [userId], 60_000);
   const socket = useMessagingSocket(token);
   const conversationsQuery = useConversations(socket);
 

@@ -1,3 +1,4 @@
+import { nativeStyles } from '../../lib/theme/nativeStyles';
 import { Sparkles, Star } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import { colors } from '../../lib/theme/theme';
@@ -18,23 +19,4 @@ export function HeroSparkles({ emphasis = 'red' }: HeroSparklesProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  layer: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  left: {
-    position: 'absolute',
-    left: 30,
-    top: 28,
-  },
-  leftSmall: {
-    position: 'absolute',
-    left: 68,
-    top: 8,
-  },
-  right: {
-    position: 'absolute',
-    right: 32,
-    top: 22,
-  },
-});
+const styles = StyleSheet.create(nativeStyles.heroSparkles);

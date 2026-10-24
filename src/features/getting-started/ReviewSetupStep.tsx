@@ -20,6 +20,7 @@ type ReviewSetupStepProps = {
   classSession?: ClassSession;
   warrantyComplete: boolean;
   marketingComplete: boolean;
+  canFinish: boolean;
   onEdit: (step: number) => void;
   onFinish: () => void;
   onActionChange: GettingStartedActionChange;
@@ -31,6 +32,7 @@ export function ReviewSetupStep({
   classSession,
   warrantyComplete,
   marketingComplete,
+  canFinish,
   onEdit,
   onFinish,
   onActionChange,
@@ -39,8 +41,9 @@ export function ReviewSetupStep({
     onActionChange({
       label: 'Finish Getting Started',
       onPress: onFinish,
+      disabled: !canFinish,
     });
-  }, [onActionChange, onFinish]);
+  }, [canFinish, onActionChange, onFinish]);
 
   return (
     <GettingStartedStepCard
@@ -59,8 +62,8 @@ export function ReviewSetupStep({
         <ReviewRow
           icon={CalendarDays}
           title="LG Training"
-          detail={classSession ? `${classSession.title} · ${formatShortDate(classSession.startsAt)} · Preference saved` : 'Training selection needed'}
-          complete={Boolean(classSession)}
+          detail={user.onboarding?.state === 'TRAINING_VERIFIED' ? 'Initial training completion verified' : classSession ? `${classSession.title} · ${formatShortDate(classSession.startsAt)} · Preference saved` : 'Training selection needed'}
+          complete={user.onboarding?.state === 'TRAINING_VERIFIED' || Boolean(classSession)}
           onPress={() => onEdit(1)}
         />
         <ReviewRow

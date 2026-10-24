@@ -2,6 +2,8 @@ import type { PropsWithChildren } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
 import { colors } from '../../lib/theme/theme';
+import { PageEntrance } from '../../components/layout/PageEntrance';
+import { AnimatedCard } from '../../components/ui/AnimatedCard';
 
 type AuthShellProps = PropsWithChildren<{
   title?: string;
@@ -20,7 +22,7 @@ export function AuthShell({
   const isCompactForm = variant === 'form';
 
   return (
-    <View
+    <PageEntrance
       className={
         variant === 'login'
           ? 'pb-1 pt-[124px]'
@@ -30,7 +32,7 @@ export function AuthShell({
       }
     >
       {isCompactForm ? (
-        <>
+        <AnimatedCard>
           <View className="relative h-11 items-center justify-center">
             {onBack ? (
               <Pressable
@@ -54,9 +56,9 @@ export function AuthShell({
               {subtitle}
             </Text>
           </View>
-        </>
+        </AnimatedCard>
       ) : (
-        <View className="items-center">
+        <AnimatedCard className="items-center">
           {title ? (
             <Text className="text-center text-[26px] font-extrabold leading-8 tracking-[-0.55px] text-hercules-ink">
               {title}
@@ -65,12 +67,12 @@ export function AuthShell({
           <Text className="mt-2 max-w-[320px] text-center text-base font-medium leading-6 text-hercules-muted">
             {subtitle}
           </Text>
-        </View>
+        </AnimatedCard>
       )}
 
-      <View className={`${isCompactForm ? 'mt-7' : 'mt-8'} items-center`}>
+      <AnimatedCard index={1} className={`${isCompactForm ? 'mt-7' : 'mt-8'} items-center`}>
         <View className="w-full max-w-[360px]">{children}</View>
-      </View>
-    </View>
+      </AnimatedCard>
+    </PageEntrance>
   );
 }

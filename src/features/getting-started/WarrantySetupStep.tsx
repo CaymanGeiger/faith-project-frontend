@@ -2,6 +2,7 @@ import { CheckCircle2, ShieldCheck } from 'lucide-react-native';
 import { useCallback, useLayoutEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { ErrorState } from '../../components/ui/StateViews';
+import { SecondaryButton } from '../../components/ui/SecondaryButton';
 import { todosApi } from '../../lib/api/endpoints';
 import { TodoItem } from '../../lib/api/types';
 import { formatShortDate } from '../../lib/format';
@@ -12,17 +13,20 @@ import { GettingStartedStepCard } from './GettingStartedStepCard';
 type WarrantySetupStepProps = {
   todo?: TodoItem;
   onComplete: () => Promise<void>;
+  onTodoUpdated: (todo: TodoItem) => void;
   onActionChange: GettingStartedActionChange;
 };
 
 export function WarrantySetupStep({
   todo,
   onComplete,
+  onTodoUpdated,
   onActionChange,
 }: WarrantySetupStepProps) {
   const complete = todo?.status === 'COMPLETED';
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const confirm = useCallback(async () => {
     if (!todo) {
@@ -36,6 +40,7 @@ export function WarrantySetupStep({
 
     setSaving(true);
     setError(null);
+    setNotice(null);
     try {
       await todosApi.update(todo.id, true);
       await onComplete();
@@ -45,6 +50,22 @@ export function WarrantySetupStep({
       setSaving(false);
     }
   }, [complete, onComplete, todo]);
+
+  const markIncomplete = async () => {
+    if (!todo || saving) return;
+    setSaving(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await todosApi.update(todo.id, false);
+      onTodoUpdated(result.todo);
+      setNotice('Warranty setup is marked incomplete. Confirm it again after completing the JB Warranties process.');
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Unable to correct warranty status. Try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   useLayoutEffect(() => {
     onActionChange({
@@ -63,6 +84,7 @@ export function WarrantySetupStep({
     >
       <View className="gap-4">
         {error ? <ErrorState message={error} /> : null}
+        {notice ? <Text accessibilityRole="alert" className="text-sm leading-5 text-hercules-blue">{notice}</Text> : null}
         <View className="gap-3 rounded-[20px] border border-hercules-blue/20 bg-hercules-white p-4">
           <View className="flex-row items-center gap-3">
             <CheckCircle2
@@ -85,6 +107,13 @@ export function WarrantySetupStep({
             </Text>
           ) : null}
         </View>
+        {complete ? (
+          <SecondaryButton
+            label={saving ? 'Updating status…' : 'Mark Setup Incomplete'}
+            disabled={saving}
+            onPress={() => void markIncomplete()}
+          />
+        ) : null}
       </View>
     </GettingStartedStepCard>
   );

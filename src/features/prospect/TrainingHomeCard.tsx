@@ -38,28 +38,30 @@ export function TrainingHomeCard({
       onPress={() => router.push('/prospect/classes')}
       className="gap-4 rounded-[16px] border border-hercules-blue/15 bg-hercules-white p-5 active:opacity-70"
     >
-      <View className="flex-row items-start gap-4">
-        <View className="h-11 w-11 items-center justify-center rounded-[13px] bg-hercules-red">
-          <GraduationCap size={24} color={colors.white} strokeWidth={2.6} />
-        </View>
-        <View className="min-w-0 flex-1 gap-1">
-          <View className="flex-row items-center justify-between gap-3">
-            <Text className="text-xs font-extrabold uppercase tracking-[1.2px] text-hercules-red">
-              LG Training
-            </Text>
-            {dueAt && !selected ? (
-              <Text className="text-xs font-bold text-hercules-muted">
-                Due {formatShortDate(dueAt)}
+      <View className="gap-1">
+        <View className="flex-row items-start gap-4">
+          <View className="min-w-0 flex-1 gap-1">
+            <View className="flex-row flex-wrap items-center justify-between gap-3">
+              <Text className="text-xs font-extrabold uppercase tracking-[1.2px] text-hercules-red">
+                LG Training
               </Text>
-            ) : null}
+              {dueAt && !selected ? (
+                <Text className="text-xs font-bold text-hercules-muted">
+                  Due {formatShortDate(dueAt)}
+                </Text>
+              ) : null}
+            </View>
+            <Text className="text-xl font-extrabold text-hercules-ink">
+              {title}
+            </Text>
           </View>
-          <Text className="text-xl font-extrabold text-hercules-ink">
-            {title}
-          </Text>
-          <Text className="text-sm leading-5 text-hercules-muted">
-            {description}
-          </Text>
+          <View className="h-11 w-11 shrink-0 items-center justify-center rounded-[13px] bg-hercules-red">
+            <GraduationCap size={24} color={colors.white} strokeWidth={2.6} />
+          </View>
         </View>
+        <Text className="text-sm leading-5 text-hercules-muted">
+          {description}
+        </Text>
       </View>
 
       <View className="flex-row items-center justify-between gap-3 border-t border-hercules-blue/10 pt-4">

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Hercules Honors Rewards",
     "slug": "hercules-honors-rewards",
-    "version": "1.0.1",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/hercules-app-icon.png",
     "userInterfaceStyle": "light",
@@ -24,11 +24,11 @@
       ],
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/hercules-app-icon.png",
+        "monochromeImage": "./assets/brand/logo-header-mark.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.herculesindustries.honorsrewards"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -43,11 +43,30 @@
           "backgroundColor": "#FFFFFF",
           "image": "./assets/brand/hercules-logo-optimized.png",
           "imageWidth": 252,
-          "resizeMode": "contain",
-          "dark": {
-            "backgroundColor": "#FFFFFF",
-            "image": "./assets/brand/hercules-logo-optimized.png"
+          "resizeMode": "contain"
+        }
+      ],
+      "expo-image",
+      "expo-secure-store",
+      "expo-status-bar",
+      "./plugins/withAndroidLauncherInsets.cjs",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "packagingOptions": {
+              "pickFirst": ["**/libc++_shared.so"]
+            }
+          },
+          "ios": {
+            "enableSceneSupport": true
           }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "messages"
         }
       ]
     ],

@@ -1,15 +1,19 @@
-import { useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { nativeStyles, nativeMeasurements } from '../../lib/theme/nativeStyles';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   interpolate,
-  ReduceMotion,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
 import type { LucideIcon } from 'lucide-react-native';
-import { motionDuration, motionEasing } from '../../lib/motion';
+import { headerMotion, headerMotionConfig } from '../../lib/headerMotion';
 import { colors } from '../../lib/theme/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { floatingPanelStyles } from './floatingPanel';
 
 export type QuickLink = {
@@ -23,48 +27,79 @@ type QuickLinksMenuProps = {
   open: boolean;
   topOffset: number;
   onSelect: (href: string) => void;
+  headerContent?: ReactNode;
 };
 
-const menuWidth = 280;
-const rowGap = 8;
-const panelPadding = 8;
+const menuWidth = nativeMeasurements.quickLinks.width;
 
 export function QuickLinksMenu({
   links,
   open,
   topOffset,
   onSelect,
+  headerContent,
 }: QuickLinksMenuProps) {
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const android = Platform.OS === 'android';
+  const scrollable = android || Boolean(headerContent);
+  const MenuContent = scrollable ? ScrollView : View;
+  const [contentMounted, setContentMounted] = useState(open);
+  const openRef = useRef(open);
+  const revision = useRef(0);
   const progress = useSharedValue(0);
+  openRef.current = open;
+
+  const finishClosing = useCallback((closingRevision: number) => {
+    if (!openRef.current && revision.current === closingRevision) {
+      setContentMounted(false);
+    }
+  }, []);
 
   useEffect(() => {
-    progress.value = withTiming(open ? 1 : 0, {
-      duration: open ? motionDuration.subtleEnter : 140,
-      easing: open ? motionEasing.enter : motionEasing.exit,
-      reduceMotion: ReduceMotion.System,
-    });
-  }, [open, progress]);
+    const currentRevision = ++revision.current;
+    if (open) setContentMounted(true);
+    progress.value = withTiming(
+      open ? 1 : 0,
+      open ? headerMotion.quickLinksEnter : headerMotion.quickLinksExit,
+      (finished) => {
+        if (finished && !open) runOnJS(finishClosing)(currentRevision);
+      },
+    );
+
+    return () => {
+      ++revision.current;
+      cancelAnimation(progress);
+    };
+  }, [open, progress, finishClosing]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: progress.value,
     transform: [
-      { scale: interpolate(progress.value, [0, 1], [0.98, 1]) },
+      { scale: interpolate(progress.value, [0, 1], [headerMotionConfig.quickLinks.initialScale, 1]) },
     ],
   }));
 
   return (
     <Animated.View
       pointerEvents={open ? 'auto' : 'none'}
+      accessibilityElementsHidden={!open}
+      importantForAccessibility={open ? 'auto' : 'no-hide-descendants'}
       style={[
         floatingPanelStyles.shell,
         styles.panel,
         { top: topOffset + 12 },
+        android ? { left: insets.left + 16, width: Math.min(menuWidth, width - insets.left - insets.right - 32) } : undefined,
         animatedStyle,
       ]}
       className="absolute z-40"
     >
       <View style={floatingPanelStyles.surface}>
-        <View style={styles.panelContent}>
+        <MenuContent
+          style={scrollable ? { maxHeight: Math.max(0, height - topOffset - insets.bottom - 28) } : styles.panelContent}
+          contentContainerStyle={scrollable ? styles.panelContent : undefined}
+        >
+          {open || contentMounted ? headerContent : null}
           {links.map((link) => (
             <QuickLinksMenuItem
               key={`${link.label}-${link.href}`}
@@ -72,7 +107,7 @@ export function QuickLinksMenu({
               onSelect={onSelect}
             />
           ))}
-        </View>
+        </MenuContent>
       </View>
     </Animated.View>
   );
@@ -104,14 +139,4 @@ function QuickLinksMenuItem({
   );
 }
 
-const styles = StyleSheet.create({
-  panel: {
-    position: 'absolute',
-    width: menuWidth,
-    left: 16,
-  },
-  panelContent: {
-    gap: rowGap,
-    padding: panelPadding,
-  },
-});
+const styles = StyleSheet.create(nativeStyles.quickLinks);

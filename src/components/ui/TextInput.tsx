@@ -1,24 +1,34 @@
-import { Text, TextInput as RNTextInput, View } from 'react-native';
+import { Text, TextInput as RNTextInput, View, type TextInputProps } from 'react-native';
 import Animated, {
   interpolateColor,
-  ReduceMotion,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { motionDuration, motionEasing } from '../../lib/motion';
+import { feedbackTiming } from '../../lib/feedbackMotion';
+import { motionConfig } from '../../lib/motionConfig';
 import { colors } from '../../lib/theme/theme';
 import { inputStyles } from './inputStyles';
+import { componentStyles } from '../../lib/theme/componentStyles';
+
+const motion = motionConfig.feedback;
+
 
 const AnimatedTextInput = Animated.createAnimatedComponent(RNTextInput);
+const styles = componentStyles.input;
 
 type AppTextInputProps = {
   label: string;
   value: string;
-  onChangeText: (value: string) => void;
+  onChangeText?: (value: string) => void;
+  editable?: boolean;
+  autoCorrect?: boolean;
+  autoComplete?: TextInputProps['autoComplete'];
+  textContentType?: TextInputProps['textContentType'];
+  maxLength?: number;
   placeholder?: string;
   secureTextEntry?: boolean;
-  keyboardType?: 'default' | 'email-address' | 'phone-pad';
+  keyboardType?: TextInputProps['keyboardType'];
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   multiline?: boolean;
   compact?: boolean;
@@ -34,29 +44,33 @@ export function TextInput({
   autoCapitalize,
   multiline,
   compact = false,
+  editable,
+  autoCorrect,
+  autoComplete,
+  textContentType,
+  maxLength,
 }: AppTextInputProps) {
   const semanticProps = inputSemantics(label, Boolean(secureTextEntry));
-  const focusProgress = useSharedValue(0);
+  const focusProgress = useSharedValue<number>(motion.progress.idle);
 
   const focusStyle = useAnimatedStyle(() => ({
     borderColor: interpolateColor(
       focusProgress.value,
-      [0, 1],
-      ['rgba(10, 45, 127, 0.22)', colors.blue],
+      [motion.progress.idle, motion.progress.active],
+      [styles.unfocusedBorderColor, colors.blue],
     ),
   }));
 
   const setFocused = (focused: boolean) => {
-    focusProgress.value = withTiming(focused ? 1 : 0, {
-      duration: motionDuration.micro,
-      easing: focused ? motionEasing.enter : motionEasing.exit,
-      reduceMotion: ReduceMotion.System,
-    });
+    focusProgress.value = withTiming(
+      focused ? motion.progress.active : motion.progress.idle,
+      focused ? feedbackTiming.focus : feedbackTiming.blur,
+    );
   };
 
   return (
-    <View className={compact ? 'gap-1.5' : 'gap-2'}>
-      <Text className="text-sm font-bold text-hercules-ink">{label}</Text>
+    <View className={compact ? styles.compactWrapper : styles.wrapper}>
+      <Text className={styles.label}>{label}</Text>
       <AnimatedTextInput
         accessibilityLabel={label}
         value={value}
@@ -67,8 +81,11 @@ export function TextInput({
         placeholderTextColor={colors.muted}
         selectionColor={colors.blue}
         secureTextEntry={secureTextEntry === true}
-        autoComplete={semanticProps.autoComplete}
-        textContentType={semanticProps.textContentType}
+        editable={editable}
+        autoCorrect={autoCorrect}
+        maxLength={maxLength}
+        autoComplete={autoComplete ?? semanticProps.autoComplete}
+        textContentType={textContentType ?? semanticProps.textContentType}
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize}
         multiline={multiline}
@@ -76,12 +93,12 @@ export function TextInput({
           multiline ? inputStyles.multiline : inputStyles.singleLine,
           focusStyle,
         ]}
-        className={`rounded-[14px] border border-hercules-blue bg-hercules-white px-4 text-base text-hercules-ink ${
+        className={`${styles.container} ${
           multiline
-            ? 'min-h-24 py-3'
+            ? styles.size.multiline
             : compact
-              ? 'h-12 py-0'
-              : 'h-14 py-0'
+              ? styles.size.compact
+              : styles.size.regular
         }`}
       />
     </View>

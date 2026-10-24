@@ -1,14 +1,13 @@
+import { nativeStyles } from '../../lib/theme/nativeStyles';
 import { useCallback, useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
 import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, {
-  FadeIn,
-  FadeOut,
-  ReduceMotion,
-} from 'react-native-reanimated';
-import { motionDuration } from '../../lib/motion';
+import Animated from 'react-native-reanimated';
+import { motionConfig } from '../../lib/motionConfig';
+import { headerMotion } from '../../lib/headerMotion';
 import { AnimatedMenuButton } from './AnimatedMenuButton';
 import { AnimatedNotificationButton } from './AnimatedNotificationButton';
 import { NotificationsMenu } from './NotificationsMenu';
@@ -19,11 +18,10 @@ type AppHeaderProps = {
   title: string;
   links: QuickLink[];
   messagesHref: '/prospect/messages' | '/manager/messages';
+  menuHeader?: ReactNode;
 };
 
-const overlayExitDuration = 220;
-
-export function AppHeader({ title, links, messagesHref }: AppHeaderProps) {
+export function AppHeader({ title, links, messagesHref, menuHeader }: AppHeaderProps) {
   const [quickLinksOpen, setQuickLinksOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
@@ -73,7 +71,7 @@ export function AppHeader({ title, links, messagesHref }: AppHeaderProps) {
 
     const timer = setTimeout(() => {
       setOverlayMounted(false);
-    }, overlayExitDuration);
+    }, headerMotion.overlayExitDuration);
 
     return () => clearTimeout(timer);
   }, [overlayMounted, overlayOpen]);
@@ -92,17 +90,16 @@ export function AppHeader({ title, links, messagesHref }: AppHeaderProps) {
           }}
         />
         <View
-          className="flex-1 items-center justify-center"
+          pointerEvents="none"
+          className="items-center justify-center"
           style={styles.centerSlot}
         >
           <Animated.View
             key={title}
             collapsable={false}
-            entering={FadeIn.duration(motionDuration.subtleEnter).reduceMotion(
-              ReduceMotion.System,
-            )}
-            exiting={FadeOut.duration(140).reduceMotion(ReduceMotion.System)}
-            className="absolute inset-0 items-center justify-center"
+            entering={headerMotion.titleEnter}
+            exiting={headerMotion.titleExit}
+            style={styles.titleLayer}
           >
             <Text
               numberOfLines={1}
@@ -114,6 +111,7 @@ export function AppHeader({ title, links, messagesHref }: AppHeaderProps) {
             </Text>
           </Animated.View>
         </View>
+        <View className="flex-1" />
         <AnimatedNotificationButton
           onPress={toggleNotifications}
           open={notificationsOpen}
@@ -121,7 +119,7 @@ export function AppHeader({ title, links, messagesHref }: AppHeaderProps) {
         />
       </View>
       <Modal
-        animationType="none"
+        animationType={motionConfig.native.modalAnimation}
         navigationBarTranslucent
         onRequestClose={closeOverlays}
         presentationStyle="overFullScreen"
@@ -132,10 +130,8 @@ export function AppHeader({ title, links, messagesHref }: AppHeaderProps) {
         <View style={styles.overlayRoot}>
           {overlayOpen ? (
             <Animated.View
-              entering={FadeIn.duration(140).reduceMotion(ReduceMotion.System)}
-              exiting={FadeOut.duration(overlayExitDuration).reduceMotion(
-                ReduceMotion.System,
-              )}
+              entering={headerMotion.scrimEnter}
+              exiting={headerMotion.scrimExit}
               pointerEvents="none"
               style={[StyleSheet.absoluteFill, styles.overlayScrim]}
             />
@@ -148,6 +144,7 @@ export function AppHeader({ title, links, messagesHref }: AppHeaderProps) {
           />
           <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
             <QuickLinksMenu
+              headerContent={menuHeader}
               links={links}
               open={quickLinksOpen}
               topOffset={insets.top + headerHeight}
@@ -167,14 +164,4 @@ export function AppHeader({ title, links, messagesHref }: AppHeaderProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  centerSlot: {
-    height: 44,
-  },
-  overlayRoot: {
-    flex: 1,
-  },
-  overlayScrim: {
-    backgroundColor: 'rgba(10, 45, 127, 0.12)',
-  },
-});
+const styles = StyleSheet.create(nativeStyles.appHeader);

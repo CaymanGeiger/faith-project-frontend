@@ -15,9 +15,9 @@ concurrency:
 
 jobs:
   validate:
-    name: Typecheck and web export
+    name: Tests, typecheck and all platform exports
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - name: Check out source
         uses: actions/checkout@v5
@@ -25,7 +25,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Install locked dependencies
@@ -34,5 +34,5 @@ jobs:
       - name: Validate the approved release source
         run: npm run verify:release-source
 
-      - name: Typecheck and export web bundle
+      - name: Test, typecheck and export Android, iOS and web
         run: npm run check

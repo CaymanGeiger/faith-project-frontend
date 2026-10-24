@@ -1,17 +1,24 @@
-import { useEffect } from 'react';
+import { nativeMeasurements, nativeStyles } from '../../lib/theme/nativeStyles';
+import { useEffect, useId } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { router, usePathname } from 'expo-router';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { useNavigationContainerRef, usePathname } from 'expo-router';
+import { getTabResetAction } from '../../lib/tabHistory';
 import type { LucideIcon } from 'lucide-react-native';
 import Animated, {
   interpolateColor,
-  ReduceMotion,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { motionDuration, motionEasing } from '../../lib/motion';
-import { colors } from '../../lib/theme/theme';
+import { feedbackTiming } from '../../lib/feedbackMotion';
+import { motionConfig } from '../../lib/motionConfig';
+import { usePressScale } from '../../lib/hooks/usePressScale';
+import { colors, shades, surfaces } from '../../lib/theme/theme';
+
+const motion = motionConfig.feedback;
+
 
 export type NavItem = {
   label: string;
@@ -29,9 +36,11 @@ export function BottomNav({ items }: BottomNavProps) {
 
   return (
     <View
-      className="z-50 bg-hercules-white px-4 pt-2"
-      style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+      pointerEvents="box-none"
+      className="z-50 px-4 pt-2"
+      style={[styles.overlay, { paddingBottom: Math.max(insets.bottom, nativeMeasurements.bottomNav.minimumBottomInset) }]}
     >
+      <BottomNavBackdrop />
       <View
         accessibilityRole="tablist"
         className="min-h-[66px] flex-row gap-2 rounded-[28px] border border-hercules-blue/15 bg-hercules-white p-1.5"
@@ -49,61 +58,87 @@ export function BottomNav({ items }: BottomNavProps) {
   );
 }
 
+function BottomNavBackdrop() {
+  const gradientId = useId().replace(/:/g, '');
+
+  return (
+    <View
+      pointerEvents="none"
+      accessible={false}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={styles.tintedBackdrop}
+    >
+      <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
+        <Defs>
+          <LinearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={colors.white} stopOpacity={0} />
+            <Stop offset="0.4" stopColor={colors.white} stopOpacity={0.03} />
+            <Stop offset="0.75" stopColor={colors.white} stopOpacity={0.08} />
+            <Stop offset="1" stopColor={colors.white} stopOpacity={0.16} />
+          </LinearGradient>
+          <LinearGradient id={`${gradientId}-tint`} x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={surfaces.navBackdropTint} stopOpacity={0} />
+            <Stop offset="0.4" stopColor={surfaces.navBackdropTint} stopOpacity={0.035} />
+            <Stop offset="0.75" stopColor={surfaces.navBackdropTint} stopOpacity={0.12} />
+            <Stop offset="1" stopColor={surfaces.navBackdropTint} stopOpacity={0.24} />
+          </LinearGradient>
+        </Defs>
+        <Rect width="100%" height="100%" fill={`url(#${gradientId})`} />
+        <Rect width="100%" height="100%" fill={`url(#${gradientId}-tint)`} />
+      </Svg>
+    </View>
+  );
+}
+
 type BottomNavButtonProps = {
   item: NavItem;
   active: boolean;
 };
 
 function BottomNavButton({ item, active }: BottomNavButtonProps) {
-  const progress = useSharedValue(active ? 1 : 0);
+  const navigation = useNavigationContainerRef();
+  const progress = useSharedValue<number>(
+    active ? motion.progress.active : motion.progress.idle,
+  );
   const Icon = item.icon;
 
   useEffect(() => {
-    progress.value = withTiming(active ? 1 : 0, {
-      duration: motionDuration.micro,
-      easing: motionEasing.enter,
-      reduceMotion: ReduceMotion.System,
-    });
+    progress.value = withTiming(
+      active ? motion.progress.active : motion.progress.idle,
+      feedbackTiming.navigation,
+    );
   }, [active, progress]);
 
-  const pressScale = useSharedValue(1);
+  const { style: pressStyle, setPressed } = usePressScale(motion.navigation.pressedScale);
 
   const activeIconStyle = useAnimatedStyle(() => ({
     opacity: progress.value,
   }));
 
   const inactiveIconStyle = useAnimatedStyle(() => ({
-    opacity: 1 - progress.value,
+    opacity: motion.opacity.visible - progress.value,
   }));
 
   const labelStyle = useAnimatedStyle(() => ({
-    color: interpolateColor(progress.value, [0, 1], [colors.ink, colors.white]),
-  }));
-
-  const pressStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pressScale.value }],
+    color: interpolateColor(
+      progress.value,
+      [motion.progress.idle, motion.progress.active],
+      [colors.ink, colors.white],
+    ),
   }));
 
   const selectionStyle = useAnimatedStyle(() => ({
     backgroundColor: interpolateColor(
       progress.value,
-      [0, 1],
-      ['rgba(206, 33, 39, 0)', colors.red],
+      [motion.progress.idle, motion.progress.active],
+      [shades.transparentRed, colors.red],
     ),
   }));
 
-  const animatePress = (pressed: boolean) => {
-    pressScale.value = withTiming(pressed ? 0.96 : 1, {
-      duration: pressed ? motionDuration.pressIn : motionDuration.micro,
-      easing: pressed ? motionEasing.exit : motionEasing.enter,
-      reduceMotion: ReduceMotion.System,
-    });
-  };
-
   const navigate = () => {
-    if (!active) {
-      router.replace(item.href);
-    }
+    const action = getTabResetAction(navigation.getRootState(), item.href);
+    if (action) navigation.dispatch(action);
   };
 
   return (
@@ -113,8 +148,8 @@ function BottomNavButton({ item, active }: BottomNavButtonProps) {
         accessibilityRole="tab"
         accessibilityState={{ selected: active }}
         onPress={navigate}
-        onPressIn={() => animatePress(true)}
-        onPressOut={() => animatePress(false)}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
         className="min-h-[54px] items-center justify-center gap-0.5 rounded-[20px] px-1 active:opacity-85"
       >
         <View className="h-6 w-7 items-center justify-center">
@@ -144,17 +179,4 @@ function BottomNavButton({ item, active }: BottomNavButtonProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  dock: {
-    elevation: 9,
-    shadowColor: colors.blue,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 18,
-  },
-  tabSurface: {
-    borderRadius: 20,
-    flex: 1,
-    overflow: 'hidden',
-  },
-});
+const styles = StyleSheet.create(nativeStyles.bottomNav);

@@ -1,6 +1,9 @@
 import { Pressable, Text } from 'react-native';
 import { LucideIcon } from 'lucide-react-native';
 import { colors } from '../../lib/theme/theme';
+import { componentStyles } from '../../lib/theme/componentStyles';
+
+const styles = componentStyles.button.secondary;
 
 type SecondaryButtonProps = {
   label: string;
@@ -22,10 +25,10 @@ export function SecondaryButton({
       accessibilityState={{ disabled: Boolean(disabled) }}
       disabled={disabled}
       onPress={onPress}
-      className="min-h-14 flex-row items-center justify-center gap-2 rounded-pill bg-hercules-blue px-5 active:opacity-80 disabled:opacity-50"
+      className={styles.container}
     >
-      {Icon ? <Icon size={17} color={colors.white} strokeWidth={2.3} /> : null}
-      <Text className="text-center text-base font-bold text-hercules-white">
+      {Icon ? <Icon size={styles.iconSize} color={colors.white} strokeWidth={styles.iconStrokeWidth} /> : null}
+      <Text className={componentStyles.button.label}>
         {label}
       </Text>
     </Pressable>

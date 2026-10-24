@@ -1,3 +1,6 @@
+import { RestrictedHome } from '../../../features/onboarding/RestrictedHome';
+import { hasRestrictedAccess } from '../../../features/onboarding/access';
+import { useAuth } from '../../../features/auth/AuthProvider';
 import {
   BadgeDollarSign,
   BookOpen,
@@ -22,6 +25,7 @@ import { SkeletonReveal } from '../../../components/ui/SkeletonReveal';
 import {
   SkeletonLine,
   SkeletonListCards,
+  SkeletonListRow,
   SkeletonSectionHeader,
 } from '../../../components/ui/SkeletonPrimitives';
 import { ErrorState } from '../../../components/ui/StateViews';
@@ -41,6 +45,11 @@ const homeQuickActionSkeletonWidths = [
 ] as const;
 
 export default function ProspectHomeScreen() {
+  const { user } = useAuth();
+  return hasRestrictedAccess(user) ? <RestrictedHome /> : <FullProspectHomeScreen />;
+}
+
+function FullProspectHomeScreen() {
   const dashboard = useAsyncData(async () => {
     const [me, onboarding, todos] = await Promise.all([
       accountApi.me(),
@@ -92,7 +101,7 @@ export default function ProspectHomeScreen() {
                     description:
                       journey.completed === journey.total
                         ? 'Review your completed dealer setup and keep your information current.'
-                        : 'Continue your guided path through training, activation, and your first LG system.',
+                        : 'Continue your setup for training, activation, and your first LG system.',
                     support: `${journey.completed} of ${journey.total} milestones complete.`,
                     href: '/prospect/getting-started',
                   }}
@@ -290,22 +299,24 @@ function ProspectHomeSkeleton() {
       </View>
 
       <View className="gap-4 rounded-[16px] border border-hercules-blue/15 bg-hercules-white p-5">
-        <View className="flex-row items-start gap-4">
-          <View className="h-11 w-11 rounded-[13px] bg-hercules-red/15" />
-          <View className="min-w-0 flex-1 gap-1">
-            <View className="h-4 justify-center">
-              <SkeletonLine className="h-3 w-[92px]" />
-            </View>
-            <View className="h-6 justify-center">
-              <SkeletonLine className="h-5 w-[210px]" />
-            </View>
-            <View>
-              <View className="h-5 justify-center">
-                <SkeletonLine className="h-3 w-full" subtle />
+        <View className="gap-1">
+          <View className="flex-row items-start gap-4">
+            <View className="min-w-0 flex-1 gap-1">
+              <View className="h-4 justify-center">
+                <SkeletonLine className="h-3 w-[92px]" />
               </View>
-              <View className="h-5 justify-center">
-                <SkeletonLine className="h-3 w-2/3" subtle />
+              <View className="h-6 justify-center">
+                <SkeletonLine className="h-5 w-full max-w-[210px]" />
               </View>
+            </View>
+            <View className="h-11 w-11 shrink-0 rounded-[13px] bg-hercules-red/15" />
+          </View>
+          <View>
+            <View className="h-5 justify-center">
+              <SkeletonLine className="h-3 w-full" subtle />
+            </View>
+            <View className="h-5 justify-center">
+              <SkeletonLine className="h-3 w-2/3" subtle />
             </View>
           </View>
         </View>
@@ -327,38 +338,19 @@ function ProspectHomeSkeleton() {
 
       <View className="gap-3">
         <SkeletonSectionHeader widthClassName="w-[148px]" />
-        <View className="overflow-hidden rounded-[18px] border border-hercules-blue/15 bg-hercules-white">
+        <ListGroup>
           {Array.from({ length: 2 }, (_, index) => (
-            <View
+            <SkeletonListRow
               key={`home-offer-row-skeleton-${index}`}
-              className={`min-h-[76px] flex-row items-center gap-3 px-4 py-3 ${
-                index === 1 ? '' : 'border-b border-hercules-blue/10'
-              }`}
-            >
-              <View
-                className={`h-10 w-10 shrink-0 rounded-[12px] ${
-                  index === 0
-                    ? 'bg-hercules-blue/15'
-                    : 'bg-hercules-red/15'
-                }`}
-              />
-              <View className="min-w-0 flex-1 gap-1">
-                <View className="h-5 justify-center">
-                  <SkeletonLine className="h-4 w-4/5" />
-                </View>
-                <View>
-                  <View className="h-5 justify-center">
-                    <SkeletonLine className="h-3 w-3/5" subtle />
-                  </View>
-                  <View className="h-5 justify-center">
-                    <SkeletonLine className="h-3 w-2/5" subtle />
-                  </View>
-                </View>
-              </View>
-              <SkeletonLine className="h-3 w-[50px]" subtle />
-            </View>
+              titleLines={1}
+              subtitleLines={2}
+              metaWidthClassName="w-[50px]"
+              trailing="meta"
+              iconTone={index === 0 ? 'blue' : 'red'}
+              isLast={index === 1}
+            />
           ))}
-        </View>
+        </ListGroup>
       </View>
     </SkeletonReveal>
   );

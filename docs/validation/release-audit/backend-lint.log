@@ -1,0 +1,136 @@
+
+/Users/caymangeiger/faith_project/backend/src/auth/auth.service.spec.ts
+  38:47  error  Async arrow function has no 'await' expression                                                                                                                                                                                                                                                                                              @typescript-eslint/require-await
+  39:9   error  Unsafe return of a value of type `any`                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unsafe-return
+  39:9   error  Unsafe call of an `any` typed value                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unsafe-call
+  88:12  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  89:12  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+
+/Users/caymangeiger/faith_project/backend/src/auth/jwt-auth.guard.spec.ts
+  21:34  error  Replace `·headers:·{·authorization?:·string·};·user?:·unknown` with `⏎····headers:·{·authorization?:·string·};⏎····user?:·unknown;⏎·`                                                                                                                                                                                                       prettier/prettier
+  36:12  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  52:12  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  63:11  error  Unsafe assignment of an error typed value                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unsafe-assignment
+  90:12  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  92:7   error  Unsafe assignment of an `any` value                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unsafe-assignment
+  92:40  error  Replace `·id:·true,·status:·true,·termsVersion:·true` with `⏎········id:·true,⏎········status:·true,⏎········termsVersion:·true,⏎·····`                                                                                                                                                                                                     prettier/prettier
+
+/Users/caymangeiger/faith_project/backend/src/benefits/benefits.service.ts
+  14:13  error  Replace `·benefits:·benefits.filter((benefit)·=>·isExternalHttpsUrl(benefit.url))` with `⏎······benefits:·benefits.filter((benefit)·=>·isExternalHttpsUrl(benefit.url)),⏎···`  prettier/prettier
+
+/Users/caymangeiger/faith_project/backend/src/classes/classes.service.ts
+  1:9  error  Replace `·ConflictException,·Injectable,·NotFoundException·` with `⏎··ConflictException,⏎··Injectable,⏎··NotFoundException,⏎`        prettier/prettier
+  2:9  error  Replace `·ClassEnrollmentStatus,·ClassSessionStatus,·UserRole·` with `⏎··ClassEnrollmentStatus,⏎··ClassSessionStatus,⏎··UserRole,⏎`  prettier/prettier
+
+/Users/caymangeiger/faith_project/backend/src/equipment/equipment.service.spec.ts
+  35:12  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+
+/Users/caymangeiger/faith_project/backend/src/leads/lead-api.adapter.ts
+  6:3   error  Async method 'syncLeadUpdate' has no 'await' expression  @typescript-eslint/require-await
+  6:24  error  '_externalLeadId' is defined but never used              @typescript-eslint/no-unused-vars
+  6:56  error  '_dto' is defined but never used                         @typescript-eslint/no-unused-vars
+
+/Users/caymangeiger/faith_project/backend/src/leads/leads.service.ts
+   1:9   error  Replace `·ForbiddenException,·Injectable,·NotFoundException·` with `⏎··ForbiddenException,⏎··Injectable,⏎··NotFoundException,⏎`            prettier/prettier
+  95:26  error  Replace `assignedSalesManagerId:·string,·managerUserId:·string` with `⏎····assignedSalesManagerId:·string,⏎····managerUserId:·string,⏎··`  prettier/prettier
+
+/Users/caymangeiger/faith_project/backend/src/main.ts
+  22:7   error    Replace `isProduction·&&·corsOrigins.some((origin)·=>·!origin.startsWith('https://'))` with `⏎····isProduction·&&⏎····corsOrigins.some((origin)·=>·!origin.startsWith('https://'))⏎··`  prettier/prettier
+  39:23  error    Replace `'OPERATIONS_WEBHOOK_URL·must·be·a·valid·HTTPS·URL·in·production'` with `⏎········'OPERATIONS_WEBHOOK_URL·must·be·a·valid·HTTPS·URL·in·production',⏎······`                     prettier/prettier
+  60:23  error    Replace `'REST·API·for·LG·prospect·onboarding·and·Hercules·manager·support.'` with `⏎········'REST·API·for·LG·prospect·onboarding·and·Hercules·manager·support.',⏎······`               prettier/prettier
+  74:1   warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator                      @typescript-eslint/no-floating-promises
+
+/Users/caymangeiger/faith_project/backend/src/marketing-consultation/lead-smart.adapter.ts
+  6:3   error  Async method 'submit' has no 'await' expression  @typescript-eslint/require-await
+  6:16  error  '_prospectUserId' is defined but never used      @typescript-eslint/no-unused-vars
+  6:41  error  '_dto' is defined but never used                 @typescript-eslint/no-unused-vars
+
+/Users/caymangeiger/faith_project/backend/src/marketing-consultation/marketing-consultation.service.ts
+  36:13  error  This assertion is unnecessary since the receiver accepts the original type of the expression  @typescript-eslint/no-unnecessary-type-assertion
+  45:13  error  This assertion is unnecessary since the receiver accepts the original type of the expression  @typescript-eslint/no-unnecessary-type-assertion
+
+/Users/caymangeiger/faith_project/backend/src/messaging/messaging.controller.ts
+  19:9  error  Replace `⏎··MessageHistoryQueryDto,⏎··ReportMessageDto,⏎` with `·MessageHistoryQueryDto,·ReportMessageDto·`  prettier/prettier
+
+/Users/caymangeiger/faith_project/backend/src/messaging/messaging.gateway.ts
+   86:53  error  Replace `payload.conversationId,·user.id` with `⏎········payload.conversationId,⏎········user.id,⏎······`                                                      prettier/prettier
+   88:43  error  Replace `·conversationId:·payload.conversationId` with `⏎········conversationId:·payload.conversationId,⏎·····`                                                prettier/prettier
+  104:53  error  Replace `payload.conversationId,·user.id` with `⏎········payload.conversationId,⏎········user.id,⏎······`                                                      prettier/prettier
+  149:64  error  Replace `user.id,·payload` with `⏎········user.id,⏎········payload,⏎······`                                                                                    prettier/prettier
+  171:53  error  Replace `payload.conversationId,·user.id` with `⏎········payload.conversationId,⏎········user.id,⏎······`                                                      prettier/prettier
+  195:53  error  Replace `payload.conversationId,·user.id` with `⏎········payload.conversationId,⏎········user.id,⏎······`                                                      prettier/prettier
+  237:19  error  Unsafe member access .user on an `any` value                                                                                                                   @typescript-eslint/no-unsafe-member-access
+  249:11  error  Unsafe assignment of an `any` value                                                                                                                            @typescript-eslint/no-unsafe-assignment
+  300:31  error  Replace `'Too·many·messaging·requests.·Please·wait·a·moment.',·429` with `⏎········'Too·many·messaging·requests.·Please·wait·a·moment.',⏎········429,⏎······`  prettier/prettier
+
+/Users/caymangeiger/faith_project/backend/src/messaging/messaging.service.spec.ts
+  23:23  error  Unsafe member access .user on an `any` value                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unsafe-member-access
+  29:35  error  Replace `{·userId:·'dealer-1'·},·{·userId:·'manager-1'·}` with `⏎············{·userId:·'dealer-1'·},⏎············{·userId:·'manager-1'·},⏎··········`                                                                                                                                                                                       prettier/prettier
+  65:12  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  66:12  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  87:12  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+
+/Users/caymangeiger/faith_project/backend/src/messaging/messaging.service.ts
+   50:11  error  Insert `··`                                                                                                                                                                     prettier/prettier
+   51:1   error  Insert `··`                                                                                                                                                                     prettier/prettier
+   52:13  error  Insert `··`                                                                                                                                                                     prettier/prettier
+   53:1   error  Insert `··`                                                                                                                                                                     prettier/prettier
+   54:13  error  Insert `··`                                                                                                                                                                     prettier/prettier
+   55:1   error  Insert `··`                                                                                                                                                                     prettier/prettier
+   56:15  error  Insert `··`                                                                                                                                                                     prettier/prettier
+   57:1   error  Insert `··`                                                                                                                                                                     prettier/prettier
+  145:37  error  Replace `'Messages·must·be·2,000·characters·or·less'` with `⏎········'Messages·must·be·2,000·characters·or·less',⏎······`                                                       prettier/prettier
+  318:32  error  Replace `⏎····conversationId:·string,⏎····userId:·string,⏎··` with `conversationId:·string,·userId:·string`                                                                     prettier/prettier
+  328:25  error  Replace `(participant)·=>·participant.user.status·!==·UserStatus.ACTIVE` with `⏎········(participant)·=>·participant.user.status·!==·UserStatus.ACTIVE,⏎······`                 prettier/prettier
+  348:9   error  Replace `⏎······!user?.termsAcceptedAt·||⏎······user.termsVersion·!==·CURRENT_TERMS_VERSION⏎····` with `!user?.termsAcceptedAt·||·user.termsVersion·!==·CURRENT_TERMS_VERSION`  prettier/prettier
+
+/Users/caymangeiger/faith_project/backend/src/resources/resources.service.ts
+  14:13  error  Replace `·resources:·resources.filter((resource)·=>·isExternalHttpsUrl(resource.url))` with `⏎······resources:·resources.filter((resource)·=>⏎········isExternalHttpsUrl(resource.url),⏎······),⏎···`  prettier/prettier
+
+/Users/caymangeiger/faith_project/backend/src/todos/todos.service.ts
+  39:16  error  Replace `·jbWarrantiesCompletedAt:·dto.completed·?·todo.completedAt·:·null` with `⏎··········jbWarrantiesCompletedAt:·dto.completed·?·todo.completedAt·:·null,⏎·······`  prettier/prettier
+
+/Users/caymangeiger/faith_project/backend/src/users/dto/update-me.dto.ts
+  1:9  error  Replace `·IsEmail,·IsOptional,·IsString,·MaxLength,·MinLength·` with `⏎··IsEmail,⏎··IsOptional,⏎··IsString,⏎··MaxLength,⏎··MinLength,⏎`  prettier/prettier
+
+/Users/caymangeiger/faith_project/backend/src/users/users.service.spec.ts
+  62:12  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  76:12  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  84:12  error  A method that is not declared with `this: void` may cause unintentional scoping of `this` when separated from its object.
+Consider using an arrow function or explicitly `.bind()`ing the method to avoid calling the method with an unintended `this` value. 
+If a function does not access `this`, it can be annotated with `this: void`  @typescript-eslint/unbound-method
+  94:47  error  Async arrow function has no 'await' expression                                                                                                                                                                                                                                                                                              @typescript-eslint/require-await
+  95:9   error  Unsafe return of a value of type `any`                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unsafe-return
+  95:9   error  Unsafe call of an `any` typed value                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unsafe-call
+
+/Users/caymangeiger/faith_project/backend/test/app.e2e-spec.ts
+  20:40  error  Replace `⏎······.get('/')⏎······.expect(200)⏎······` with `.get('/').expect(200)`  prettier/prettier
+  24:1   error  Delete `··`                                                                        prettier/prettier
+  25:7   error  Delete `··`                                                                        prettier/prettier
+  26:1   error  Delete `··`                                                                        prettier/prettier
+
+✖ 70 problems (69 errors, 1 warning)
+  40 errors and 0 warnings potentially fixable with the `--fix` option.
+

@@ -1,6 +1,6 @@
 import { Building2 } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { AppScreen } from '../../../components/layout/AppScreen';
 import { managerQuickLinks } from '../../../components/layout/navigation';
 import { AnimatedCard } from '../../../components/ui/AnimatedCard';
@@ -12,12 +12,14 @@ import { ModalSheet } from '../../../components/ui/ModalSheet';
 import { PageHero } from '../../../components/ui/PageHero';
 import {
   SkeletonLine,
+  SkeletonListRow,
   SkeletonPrimaryButton,
   SkeletonTextField,
 } from '../../../components/ui/SkeletonPrimitives';
 import { SkeletonReveal } from '../../../components/ui/SkeletonReveal';
 import { ErrorState } from '../../../components/ui/StateViews';
 import { LeadStatusEditor } from '../../../features/manager/LeadStatusEditor';
+import { TrainingVerification } from '../../../features/onboarding/TrainingVerification';
 import { useManagerData } from '../../../features/manager/ManagerDataProvider';
 import { AssignedProspect, LeadRecord } from '../../../lib/api/types';
 import { leadsApi } from '../../../lib/api/endpoints';
@@ -25,14 +27,24 @@ import { formatShortDate, fullName } from '../../../lib/format';
 
 export default function ManagerProspectsScreen() {
   const { prospects } = useManagerData();
-  const [selected, setSelected] = useState<AssignedProspect | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const selected = prospects.data?.prospects.find(prospect => prospect.userId === selectedUserId) ?? null;
   const [loadedLead, setLoadedLead] = useState<{
     userId: string;
     lead: LeadRecord;
   } | null>(null);
   const [leadError, setLeadError] = useState<string | null>(null);
+  const [leadReloadVersion, setLeadReloadVersion] = useState(0);
   const selectedUserIdRef = useRef<string | null>(null);
-  const selectedUserId = selected?.userId ?? null;
+
+  useEffect(() => {
+    if (selectedUserId && prospects.data && !selected) {
+      selectedUserIdRef.current = null;
+      setSelectedUserId(null);
+      setLoadedLead(null);
+      setLeadError(null);
+    }
+  }, [prospects.data, selected, selectedUserId]);
 
   useEffect(() => {
     const userId = selectedUserId;
@@ -64,18 +76,18 @@ export default function ManagerProspectsScreen() {
     return () => {
       active = false;
     };
-  }, [selectedUserId]);
+  }, [leadReloadVersion, selectedUserId]);
 
   const openProspect = (prospect: AssignedProspect) => {
     selectedUserIdRef.current = prospect.userId;
     setLoadedLead(null);
     setLeadError(null);
-    setSelected(prospect);
+    setSelectedUserId(prospect.userId);
   };
 
   const closeProspect = () => {
     selectedUserIdRef.current = null;
-    setSelected(null);
+    setSelectedUserId(null);
     setLoadedLead(null);
     setLeadError(null);
   };
@@ -104,7 +116,6 @@ export default function ManagerProspectsScreen() {
       <PageHero
         title="Dealer Success"
         subtitle="Track each dealer's current stage, next action, and follow-up notes."
-        reveal={false}
       />
 
       {prospects.error && !prospects.data ? (
@@ -116,16 +127,16 @@ export default function ManagerProspectsScreen() {
           fallback={<ManagerProspectsSkeleton />}
         >
           {prospects.data ? (
-            <AnimatedCard reveal={false}>
+            <AnimatedCard index={1}>
               <ListGroup>
                 {prospects.data.prospects.map((prospect, index) => (
                   <ListItem
                     key={prospect.id}
-                    title={fullName(prospect.user)}
+                    title={fullName(prospect.user) || prospect.user.email}
                     subtitle={`${prospect.companyName} · ${getDealerGuidance(
                       prospect,
                     ).title}`}
-                    meta={prospect.certificationStatus.replaceAll('_', ' ')}
+                    meta={prospect.user.status === 'INVITED' ? 'ACTIVATION PENDING' : prospect.certificationStatus.replaceAll('_', ' ')}
                     icon={Building2}
                     iconTone={index % 2 === 0 ? 'red' : 'blue'}
                     variant="row"
@@ -143,11 +154,18 @@ export default function ManagerProspectsScreen() {
       ) : null}
 
       <ModalSheet
-        title={selected ? fullName(selected.user) : 'Dealer'}
+        title={selected ? fullName(selected.user) || selected.user.email : 'Dealer'}
         visible={Boolean(selected)}
+        avoidKeyboard
         onClose={closeProspect}
       >
-        <View className="gap-4">
+        <ScrollView
+          automaticallyAdjustKeyboardInsets
+          contentContainerClassName="gap-4"
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+        >
           {selected ? (
             <View className="gap-2 rounded-[16px] border border-hercules-blue/15 bg-hercules-white p-5">
               <Text className="text-2xl font-extrabold text-hercules-ink">
@@ -155,7 +173,7 @@ export default function ManagerProspectsScreen() {
               </Text>
               <Text className="font-bold text-hercules-muted">{selected.user.email}</Text>
               <Text className="text-xs font-extrabold uppercase tracking-[0.7px] text-hercules-muted">
-                Current training stage
+                Certification stage
               </Text>
               <Badge
                 label={selected.certificationStatus.replaceAll('_', ' ')}
@@ -190,8 +208,9 @@ export default function ManagerProspectsScreen() {
               </View>
             </View>
           ) : null}
+          {selected ? <TrainingVerification key={selected.userId} prospectUserId={selected.userId} onVerified={prospects.reload} /> : null}
           {selected && leadError && !selectedLead ? (
-            <ErrorState message={leadError} />
+            <ErrorState message={leadError} onRetry={() => setLeadReloadVersion(version => version + 1)} />
           ) : selected ? (
             <AsyncContent
               ready={Boolean(selectedLead)}
@@ -206,7 +225,7 @@ export default function ManagerProspectsScreen() {
               ) : null}
             </AsyncContent>
           ) : null}
-        </View>
+        </ScrollView>
       </ModalSheet>
     </AppScreen>
   );
@@ -215,40 +234,18 @@ export default function ManagerProspectsScreen() {
 function ManagerProspectsSkeleton() {
   return (
     <SkeletonReveal label="Loading prospects">
-      <View className="overflow-hidden rounded-[18px] border border-hercules-blue/15 bg-hercules-white">
+      <ListGroup>
         {Array.from({ length: 2 }, (_, index) => (
-          <View
+          <SkeletonListRow
             key={`manager-prospect-${index}`}
-            className={`min-h-[76px] flex-row items-center gap-3 px-4 py-3 ${
-              index === 1 ? '' : 'border-b border-hercules-blue/10'
-            }`}
-          >
-            <View
-              className={`h-10 w-10 shrink-0 rounded-[12px] ${
-                index === 0
-                  ? 'bg-hercules-red/15'
-                  : 'bg-hercules-blue/15'
-              }`}
-            />
-            <View className="min-w-0 flex-1 gap-1">
-              <View className="h-5 justify-center">
-                <SkeletonLine className="h-4 w-4/5" />
-              </View>
-              <View className="h-5 justify-center">
-                <SkeletonLine className="h-3 w-4/5" subtle />
-              </View>
-            </View>
-            <View className="shrink-0 flex-row items-center justify-end gap-2">
-              <View className="h-4 w-[83px] justify-center">
-                <SkeletonLine className="h-3 w-full" subtle />
-              </View>
-              <View className="h-6 w-4 items-center justify-center">
-                <SkeletonLine className="h-5 w-2" subtle />
-              </View>
-            </View>
-          </View>
+            subtitleWidthClassNames={['w-4/5']}
+            metaWidth={83}
+            chevronWidthClassName="w-2"
+            iconTone={index === 0 ? 'red' : 'blue'}
+            isLast={index === 1}
+          />
         ))}
-      </View>
+      </ListGroup>
     </SkeletonReveal>
   );
 }
@@ -284,11 +281,24 @@ function LeadEditorSkeleton() {
 }
 
 function getDealerGuidance(prospect: AssignedProspect) {
+  if (prospect.user.status === 'INVITED') {
+    return {
+      title: 'Account activation pending',
+      description: 'The registration is saved. The dealer must verify their email and set a password from Activate Account before signing in.',
+    };
+  }
   if (prospect.certificationStatus === 'CERTIFIED') {
     return {
       title: 'Support ongoing dealer growth',
       description:
         'Review warranty and marketing milestones, then keep the dealer engaged with updates, offers, training, and lead support.',
+    };
+  }
+  if (prospect.user.initialTrainingVerifiedAt) {
+    return {
+      title: 'Review remaining dealer milestones',
+      description:
+        'Initial training is verified and dealer features are available. Review warranty and marketing milestones and help the dealer with their next steps.',
     };
   }
   if (prospect.certificationStatus === 'IN_PROGRESS') {
@@ -301,6 +311,6 @@ function getDealerGuidance(prospect: AssignedProspect) {
   return {
     title: 'Help choose LG training',
     description:
-      'Guide the dealer to an upcoming LG training session and explain the current onboarding next step.',
+      'Guide the dealer to an upcoming LG training session and explain the next step in getting started.',
   };
 }

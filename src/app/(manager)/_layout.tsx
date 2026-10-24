@@ -1,5 +1,6 @@
+import { motionConfig } from '../../lib/motionConfig';
 import { Redirect, Stack, usePathname } from 'expo-router';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppHeader } from '../../components/layout/AppHeader';
 import { BottomNav } from '../../components/layout/BottomNav';
@@ -29,7 +30,7 @@ export default function ManagerLayout() {
 
   return (
     <ManagerDataProvider key={user.id} userId={user.id} token={token}>
-      <SafeAreaView className="flex-1 bg-hercules-red" edges={['top']}>
+      <SafeAreaView className="flex-1 bg-hercules-red" edges={Platform.OS === 'android' ? ['top', 'left', 'right'] : ['top']}>
         <View className="flex-1 bg-hercules-white">
           <AppHeader
             title={getManagerHeaderTitle(pathname)}
@@ -39,8 +40,8 @@ export default function ManagerLayout() {
           <View className="flex-1">
             <Stack
               screenOptions={{
-                animation: 'none',
-                gestureEnabled: true,
+                animation: motionConfig.native.tabNavigation,
+                ...motionConfig.native.pageGestures,
                 headerShown: false,
               }}
             >

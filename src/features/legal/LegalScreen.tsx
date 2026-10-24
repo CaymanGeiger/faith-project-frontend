@@ -1,9 +1,11 @@
-import type { PropsWithChildren } from 'react';
+import { Children, type PropsWithChildren } from 'react';
 import { router } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../lib/theme/theme';
+import { PageEntrance } from '../../components/layout/PageEntrance';
+import { AnimatedCard } from '../../components/ui/AnimatedCard';
 
 type LegalScreenProps = PropsWithChildren<{
   title: string;
@@ -24,7 +26,7 @@ export function LegalScreen({
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-hercules-white" edges={['top', 'left', 'right']}>
+    <SafeAreaView className="flex-1 bg-hercules-white" edges={Platform.OS === 'android' ? ['top', 'bottom', 'left', 'right'] : ['top', 'left', 'right']}>
       <View className="flex-row items-center border-b border-hercules-blue/10 px-5 py-3">
         <Pressable
           accessibilityRole="button"
@@ -43,12 +45,18 @@ export function LegalScreen({
           </Text>
         </View>
       </View>
-      <ScrollView
-        className="flex-1"
-        contentContainerClassName="gap-5 px-5 pb-10 pt-6"
-      >
-        {children}
-      </ScrollView>
+      <PageEntrance className="flex-1">
+        <ScrollView
+          automaticallyAdjustKeyboardInsets
+          keyboardShouldPersistTaps="handled"
+          className="flex-1"
+          contentContainerClassName="gap-5 px-5 pb-10 pt-6"
+        >
+          {Children.map(children, (child, index) => child == null ? null : (
+            <AnimatedCard index={index}>{child}</AnimatedCard>
+          ))}
+        </ScrollView>
+      </PageEntrance>
     </SafeAreaView>
   );
 }

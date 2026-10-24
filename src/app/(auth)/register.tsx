@@ -1,6 +1,6 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BackHandler, Pressable, Text, View } from 'react-native';
+import { BackHandler, Keyboard, Platform, Pressable, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { Check } from 'lucide-react-native';
 import { PrimaryButton } from '../../components/ui/PrimaryButton';
@@ -9,20 +9,17 @@ import { ErrorState } from '../../components/ui/StateViews';
 import { AuthShell } from '../../features/auth/AuthShell';
 import { useAuth } from '../../features/auth/AuthProvider';
 import { useAuthViewport } from '../../features/auth/AuthViewport';
-import {
-  authMotion,
-  standardLayoutTransition,
-} from '../../lib/motion';
+import { standardLayoutTransition } from '../../lib/motion';
 import { colors } from '../../lib/theme/theme';
+import { developmentInvitationToken } from '../../lib/development';
 
 type AccountType = 'PROSPECT' | 'SALES_MANAGER';
-type StageDirection = 'initial' | 'forward' | 'back';
 
 export default function RegisterScreen() {
   const params = useLocalSearchParams<{ token?: string }>();
   const { getInviteDetails, registerFromInvite } = useAuth();
   const { resetViewport, setBrandVisible } = useAuthViewport();
-  const initialToken = params.token ?? (__DEV__ ? 'prospect-demo-token' : '');
+  const initialToken = params.token ?? developmentInvitationToken;
   const [token, setToken] = useState(initialToken);
   const [accountType, setAccountType] = useState<AccountType | null>(null);
   const [email, setEmail] = useState('');
@@ -34,32 +31,33 @@ export default function RegisterScreen() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [validatingInvite, setValidatingInvite] = useState(false);
   const [creatingAccount, setCreatingAccount] = useState(false);
-  const [stageDirection, setStageDirection] =
-    useState<StageDirection>('initial');
   const [error, setError] = useState<string | null>(null);
+  const inviteRequest = useRef(0);
   const checkedDeepLink = useRef(false);
   const returningToLogin = useRef(false);
 
   const validateInvite = useCallback(
     async (inviteToken = token) => {
+      const request = ++inviteRequest.current;
       setValidatingInvite(true);
       setError(null);
       try {
         const cleanToken = inviteToken.trim();
         const details = await getInviteDetails(cleanToken);
+        if (request !== inviteRequest.current) return;
         resetViewport();
-        setStageDirection('forward');
         setToken(cleanToken);
         setBrandVisible(false);
         setAccountType(details.accountType);
       } catch (caught) {
+        if (request !== inviteRequest.current) return;
         setError(
           caught instanceof Error
             ? caught.message
             : 'Unable to verify invitation',
         );
       } finally {
-        setValidatingInvite(false);
+        if (request === inviteRequest.current) setValidatingInvite(false);
       }
     },
     [getInviteDetails, resetViewport, token],
@@ -99,52 +97,52 @@ export default function RegisterScreen() {
     }
   };
 
-  const resetInvite = () => {
+  const resetInvite = useCallback(() => {
+    inviteRequest.current += 1;
+    setValidatingInvite(false);
     resetViewport();
     setBrandVisible(true);
-    setStageDirection('back');
     setError(null);
     setAccountType(null);
-  };
+  }, [resetViewport, setBrandVisible]);
 
   const returnToLogin = useCallback(() => {
     if (returningToLogin.current) {
       return;
     }
     returningToLogin.current = true;
+    inviteRequest.current += 1;
     resetViewport();
     setBrandVisible(true);
-    setStageDirection('initial');
-    router.dismissTo({
-      pathname: '/login',
-      params: { motion: 'back' },
-    });
+    router.dismissTo('/login');
   }, [resetViewport]);
 
-  useEffect(() => {
-    const subscription = BackHandler.addEventListener(
-      'hardwareBackPress',
-      () => {
-        returnToLogin();
+  useFocusEffect(useCallback(() => {
+    if (Platform.OS !== 'android') return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (Keyboard.isVisible()) {
+        Keyboard.dismiss();
+      } else if (creatingAccount) {
+        // Do not leave while a one-use invitation is being consumed.
         return true;
-      },
-    );
+      } else if (accountType) {
+        resetInvite();
+      } else {
+        returnToLogin();
+      }
+      return true;
+    });
     return () => subscription.remove();
-  }, [returnToLogin]);
+  }, [accountType, creatingAccount, resetInvite, returnToLogin]));
+
+  useEffect(() => () => { inviteRequest.current += 1; }, []);
 
   return (
-    <Animated.View
-      collapsable={false}
-      entering={authMotion.forwardIn}
-      className="pb-3 pt-4"
-    >
+    <View className="pb-3 pt-4">
       {!accountType ? (
         <Animated.View
           key="invitation-stage"
           collapsable={false}
-          entering={
-            stageDirection === 'back' ? authMotion.backIn : undefined
-          }
           layout={standardLayoutTransition}
           className="w-full"
         >
@@ -186,7 +184,6 @@ export default function RegisterScreen() {
         <Animated.View
           key={`account-stage-${accountType}`}
           collapsable={false}
-          entering={authMotion.forwardIn}
           layout={standardLayoutTransition}
           className="w-full"
         >
@@ -308,6 +305,6 @@ export default function RegisterScreen() {
           </AuthShell>
         </Animated.View>
       )}
-    </Animated.View>
+    </View>
   );
 }

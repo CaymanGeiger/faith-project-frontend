@@ -1,16 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { componentStyles } from '../../lib/theme/componentStyles';
 
-export const inputStyles = StyleSheet.create({
-  singleLine: {
-    fontSize: 16,
-    lineHeight: 20,
-    paddingTop: 0,
-    paddingBottom: 0,
-    textAlignVertical: 'center',
-  },
-  multiline: {
-    fontSize: 16,
-    lineHeight: 20,
-    textAlignVertical: 'top',
-  },
-});
+// Keep the existing shared import stable for the composer and other native inputs.
+export const inputStyles = StyleSheet.create(componentStyles.input.native);

@@ -1,7 +1,9 @@
+import { router } from 'expo-router';
 import { UserRound } from 'lucide-react-native';
 import { useCallback, useLayoutEffect, useState } from 'react';
 import { View } from 'react-native';
 import { ErrorState } from '../../components/ui/StateViews';
+import { SecondaryButton } from '../../components/ui/SecondaryButton';
 import { TextInput } from '../../components/ui/TextInput';
 import { accountApi } from '../../lib/api/endpoints';
 import { ProspectProfile, User } from '../../lib/api/types';
@@ -28,7 +30,6 @@ export function ProfileSetupStep({
   onComplete,
   onActionChange,
 }: ProfileSetupStepProps) {
-  const [email, setEmail] = useState(draft?.profile?.email ?? user.email);
   const [firstName, setFirstName] = useState(
     draft?.profile?.firstName ?? user.firstName,
   );
@@ -43,7 +44,7 @@ export function ProfileSetupStep({
   const [error, setError] = useState<string | null>(null);
 
   const save = useCallback(async () => {
-    if (![email, firstName, lastName, companyName].every((value) => value.trim())) {
+    if (![firstName, lastName, companyName].every((value) => value.trim())) {
       setError('Complete every field before continuing.');
       return;
     }
@@ -51,7 +52,7 @@ export function ProfileSetupStep({
     setSaving(true);
     setError(null);
     try {
-      await accountApi.update({ email, firstName, lastName, phone, companyName });
+      await accountApi.update({ firstName, lastName, phone, companyName });
       await clearGettingStartedDraftFields(userId, 'profile');
       await onComplete();
     } catch (caught) {
@@ -59,15 +60,25 @@ export function ProfileSetupStep({
     } finally {
       setSaving(false);
     }
-  }, [companyName, email, firstName, lastName, onComplete, phone, userId]);
+  }, [companyName, firstName, lastName, onComplete, phone, userId]);
 
   const saveForLater = useCallback(
     () =>
       saveGettingStartedDraft(userId, {
-        profile: { email, firstName, lastName, phone, companyName },
+        profile: { email: user.email, firstName, lastName, phone, companyName },
       }),
-    [companyName, email, firstName, lastName, phone, userId],
+    [companyName, firstName, lastName, phone, user.email, userId],
   );
+
+  const openEmailSettings = async () => {
+    setError(null);
+    try {
+      await saveForLater();
+      router.push('/prospect/account');
+    } catch {
+      setError('Unable to save your draft. Try again before changing your email.');
+    }
+  };
 
   useLayoutEffect(() => {
     onActionChange({
@@ -88,9 +99,14 @@ export function ProfileSetupStep({
         {error ? <ErrorState message={error} /> : null}
         <TextInput
           label="Email"
-          value={email}
-          onChangeText={setEmail}
+          value={user.email}
+          editable={false}
           keyboardType="email-address"
+        />
+        <SecondaryButton
+          label="Change Email in Profile"
+          onPress={() => void openEmailSettings()}
+          disabled={saving}
         />
         <TextInput
           label="First Name"

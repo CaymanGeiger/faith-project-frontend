@@ -3,12 +3,11 @@ import { Pressable } from 'react-native';
 import { Menu, X } from 'lucide-react-native';
 import Animated, {
   interpolate,
-  ReduceMotion,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { motionDuration, motionEasing } from '../../lib/motion';
+import { headerMotion, headerMotionConfig } from '../../lib/headerMotion';
 import { colors } from '../../lib/theme/theme';
 import {
   headerControlClassName,
@@ -24,26 +23,22 @@ export function AnimatedMenuButton({ open, onPress }: AnimatedMenuButtonProps) {
   const progress = useSharedValue(open ? 1 : 0);
 
   useEffect(() => {
-    progress.value = withTiming(open ? 1 : 0, {
-      duration: motionDuration.micro,
-      easing: motionEasing.enter,
-      reduceMotion: ReduceMotion.System,
-    });
+    progress.value = withTiming(open ? 1 : 0, headerMotion.control);
   }, [open, progress]);
 
   const menuStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 0.45, 1], [1, 0, 0]),
+    opacity: interpolate(progress.value, [0, headerMotionConfig.menuIcon.fadeOutEnd, 1], [1, 0, 0]),
     transform: [
-      { scale: interpolate(progress.value, [0, 1], [1, 0.82]) },
-      { rotateZ: `${interpolate(progress.value, [0, 1], [0, -12])}deg` },
+      { scale: interpolate(progress.value, [0, 1], [1, headerMotionConfig.menuIcon.hiddenScale]) },
+      { rotateZ: `${interpolate(progress.value, [0, 1], [0, -headerMotionConfig.menuIcon.rotationDegrees])}deg` },
     ],
   }));
 
   const closeStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 0.55, 1], [0, 0, 1]),
+    opacity: interpolate(progress.value, [0, headerMotionConfig.menuIcon.fadeInStart, 1], [0, 0, 1]),
     transform: [
-      { scale: interpolate(progress.value, [0, 1], [0.82, 1]) },
-      { rotateZ: `${interpolate(progress.value, [0, 1], [12, 0])}deg` },
+      { scale: interpolate(progress.value, [0, 1], [headerMotionConfig.menuIcon.hiddenScale, 1]) },
+      { rotateZ: `${interpolate(progress.value, [0, 1], [headerMotionConfig.menuIcon.rotationDegrees, 0])}deg` },
     ],
   }));
 

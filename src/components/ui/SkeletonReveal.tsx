@@ -3,9 +3,13 @@ import { useEffect, useRef, useState } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { Animated } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
-import { motionDuration } from '../../lib/motion';
+import { skeletonRevealTiming } from '../../lib/feedbackMotion';
+import { motionConfig } from '../../lib/motionConfig';
 
-export const skeletonRevealDelayMs = 500;
+const motion = motionConfig.feedback;
+
+
+export const skeletonRevealDelayMs = motion.skeleton.delay;
 
 type SkeletonRevealProps = PropsWithChildren<{
   label?: string;
@@ -22,32 +26,30 @@ export function SkeletonReveal({
   children,
 }: SkeletonRevealProps) {
   const [visible, setVisible] = useState(delayMs <= 0);
-  const opacity = useRef(new Animated.Value(delayMs <= 0 ? 1 : 0)).current;
+  const opacity = useRef(new Animated.Value(
+    delayMs <= 0 ? motion.opacity.visible : motion.opacity.hidden,
+  )).current;
   const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     opacity.stopAnimation();
 
     if (delayMs <= 0) {
-      opacity.setValue(1);
+      opacity.setValue(motion.opacity.visible);
       setVisible(true);
       return;
     }
 
-    opacity.setValue(0);
+    opacity.setValue(motion.opacity.hidden);
     setVisible(false);
     const timer = setTimeout(() => {
       setVisible(true);
       if (reduceMotion) {
-        opacity.setValue(1);
+        opacity.setValue(motion.opacity.visible);
         return;
       }
 
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: motionDuration.exit,
-        useNativeDriver: true,
-      }).start();
+      Animated.timing(opacity, skeletonRevealTiming).start();
     }, delayMs);
 
     return () => {

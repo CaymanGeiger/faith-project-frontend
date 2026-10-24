@@ -1,3 +1,4 @@
+import { motionConfig } from '../../lib/motionConfig';
 import { Image, type ImageProps } from 'expo-image';
 import type { BrandAssetKey } from '../../lib/theme/assets';
 import { useBrandAsset } from '../../features/brand/BrandAssetsProvider';
@@ -11,7 +12,7 @@ export function BrandImage({
   cachePolicy = 'memory-disk',
   contentFit = 'contain',
   priority = 'high',
-  transition = 0,
+  transition = motionConfig.native.imageTransition,
   ...props
 }: BrandImageProps) {
   const source = useBrandAsset(asset);

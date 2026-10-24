@@ -1,0 +1,38 @@
+{
+  "date": "2026-09-28",
+  "scope": "Local working trees; no deployment or production writes",
+  "backend": {
+    "unit_tests": 275,
+    "database_acceptance_tests": 14,
+    "lint": "pass",
+    "typecheck": "pass",
+    "build": "pass",
+    "schema_validation": "pass",
+    "schema_drift": "none"
+  },
+  "frontend": {
+    "automated_checks": 42,
+    "typecheck": "pass",
+    "web_export": "pass",
+    "android_export": "pass",
+    "ios_export": "pass",
+    "clean_install": "pass",
+    "ios_expo_go_smoke": "home and training including saved history passed"
+  },
+  "postgresql_version": "14.13",
+  "database_rehearsal": {
+    "fresh_migrations": "pass",
+    "upgrade_from_first_six_migrations_to_nine": "pass",
+    "synthetic_account_preserved": "pass",
+    "backup_restore": "pass",
+    "first_manager_bootstrap": "pass",
+    "duplicate_bootstrap_refused": "pass",
+    "non_test_database_guard": "pass"
+  },
+  "native_release_builds": "not verified",
+  "production_email_and_push": "not activated",
+  "excluded": [
+    "Staff dealer-request fulfillment",
+    "Training cancellation/rescheduling"
+  ]
+}

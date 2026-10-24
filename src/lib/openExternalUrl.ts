@@ -6,13 +6,17 @@ export async function openExternalUrl(
 ) {
   try {
     const protocol = new URL(url).protocol;
-    if (protocol !== 'https:' && protocol !== 'tel:') {
+    if (
+      protocol !== 'https:' &&
+      protocol !== 'tel:' &&
+      protocol !== 'mailto:'
+    ) {
       throw new Error('Unsupported URL protocol');
     }
 
-    // Android package visibility can make canOpenURL('tel:') return false even
-    // when a device has a dialer. Phone numbers here are fixed support links.
-    if (protocol === 'tel:') {
+    // Android package visibility can make canOpenURL return false for native
+    // handlers even when a dialer or email app is available.
+    if (protocol === 'tel:' || protocol === 'mailto:') {
       await Linking.openURL(url);
       return;
     }

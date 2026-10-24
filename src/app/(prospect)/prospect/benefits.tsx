@@ -17,18 +17,20 @@ import { ListItem } from '../../../components/ui/ListItem';
 import { PageHero } from '../../../components/ui/PageHero';
 import { SectionHeader } from '../../../components/ui/SectionHeader';
 import {
-  SkeletonLine,
+  SkeletonListRow,
   SkeletonListGroup,
   SkeletonSectionHeader,
 } from '../../../components/ui/SkeletonPrimitives';
 import { SkeletonReveal } from '../../../components/ui/SkeletonReveal';
 import { ErrorState } from '../../../components/ui/StateViews';
+import { useInAppContent } from '../../../features/content/InAppContentProvider';
+import { FinancingCard } from '../../../features/financing/FinancingCard';
 import { accountApi, benefitsApi } from '../../../lib/api/endpoints';
 import type { Benefit } from '../../../lib/api/types';
 import { useAsyncData } from '../../../lib/hooks/useAsyncData';
-import { openExternalUrl } from '../../../lib/openExternalUrl';
 
 export default function ProspectBenefitsScreen() {
+  const { openContent } = useInAppContent();
   const page = useAsyncData(async () => {
     const [benefits, onboarding] = await Promise.all([
       benefitsApi.list(),
@@ -48,7 +50,7 @@ export default function ProspectBenefitsScreen() {
     >
       <PageHero
         title="Your Dealer Benefits"
-        subtitle="See the programs, support, and tools available through your Hercules partnership—and what action comes next."
+        subtitle="See the programs, support, and tools available through Hercules, plus your next steps."
       />
 
       {page.error && !page.data ? (
@@ -84,11 +86,16 @@ export default function ProspectBenefitsScreen() {
                 icon={ShieldCheck}
                 iconTone="blue"
                 variant="row"
-                onPress={() => router.push('/prospect/getting-started')}
+                onPress={() =>
+                  router.push({
+                    pathname: '/prospect/getting-started',
+                    params: { step: 'warranties' },
+                  })
+                }
               />
               <ListItem
                 title="Marketing Consultation"
-                subtitle="Connect with marketing tools and business-growth support."
+                subtitle="Find marketing tools and support for growing your business."
                 meta={
                   summary.marketingConsultationSubmitted
                     ? 'Availability saved'
@@ -125,7 +132,9 @@ export default function ProspectBenefitsScreen() {
                   iconTone={index % 2 === 0 ? 'red' : 'blue'}
                   variant="row"
                   isLast={index === benefitList.length - 1}
-                  onPress={() => openBenefitUrl(benefit)}
+                  onPress={benefit.url
+                    ? () => openContent({ url: benefit.url, title: benefit.title })
+                    : undefined}
                 />
               ))}
               {benefitList.length === 0 ? (
@@ -155,7 +164,7 @@ export default function ProspectBenefitsScreen() {
               />
               <ListItem
                 title="Hercules Honors Rewards"
-                subtitle="Stay engaged with training, resources, promotions, and ongoing dealer support."
+                subtitle="Keep up with training, resources, promotions, and dealer support."
                 icon={Sparkles}
                 iconTone="blue"
                 variant="row"
@@ -164,6 +173,8 @@ export default function ProspectBenefitsScreen() {
               />
             </ListGroup>
           </AnimatedCard>
+
+          <FinancingCard />
         </>
       ) : (
         <BenefitsSkeleton />
@@ -177,54 +188,58 @@ function BenefitsSkeleton() {
     <SkeletonReveal label="Loading benefits" className="gap-4">
       <View className="gap-3">
         <SkeletonSectionHeader widthClassName="w-[187px]" />
-        <View className="overflow-hidden rounded-[18px] border border-hercules-blue/15 bg-hercules-white">
-          <JourneyUnlockSkeletonRow
+        <ListGroup>
+          <SkeletonListRow
+            subtitleLines={2}
             titleLines={2}
             metaWidthClassName="w-[57px]"
             iconTone="red"
           />
-          <JourneyUnlockSkeletonRow
+          <SkeletonListRow
+            subtitleLines={2}
             titleLines={1}
             metaWidthClassName="w-[88px]"
             iconTone="blue"
           />
-          <JourneyUnlockSkeletonRow
+          <SkeletonListRow
+            subtitleLines={2}
             titleLines={2}
             metaWidthClassName="w-[88px]"
             iconTone="red"
           />
-          <JourneyUnlockSkeletonRow
+          <SkeletonListRow
+            subtitleLines={2}
             titleLines={1}
             metaWidthClassName="w-[66px]"
             iconTone="blue"
             isLast
           />
-        </View>
+        </ListGroup>
       </View>
 
       <View className="gap-3">
         <SkeletonSectionHeader widthClassName="w-[150px]" />
-        <View className="overflow-hidden rounded-[18px] border border-hercules-blue/15 bg-hercules-white">
-          <JourneyUnlockSkeletonRow
+        <ListGroup>
+          <SkeletonListRow
             titleLines={1}
             subtitleLines={2}
             metaWidthClassName="w-[66px]"
             iconTone="red"
           />
-          <JourneyUnlockSkeletonRow
+          <SkeletonListRow
             titleLines={1}
             subtitleLines={2}
             metaWidthClassName="w-[66px]"
             iconTone="blue"
           />
-          <JourneyUnlockSkeletonRow
+          <SkeletonListRow
             titleLines={1}
             subtitleLines={1}
             metaWidthClassName="w-[66px]"
             iconTone="red"
             isLast
           />
-        </View>
+        </ListGroup>
       </View>
 
       <View className="gap-3">
@@ -240,74 +255,6 @@ function BenefitsSkeleton() {
   );
 }
 
-type JourneyUnlockSkeletonRowProps = {
-  iconTone: 'red' | 'blue';
-  isLast?: boolean;
-  metaWidthClassName: string;
-  subtitleLines?: 1 | 2;
-  titleLines: 1 | 2;
-};
-
-function JourneyUnlockSkeletonRow({
-  iconTone,
-  isLast = false,
-  metaWidthClassName,
-  subtitleLines = 2,
-  titleLines,
-}: JourneyUnlockSkeletonRowProps) {
-  return (
-    <View
-      className={`min-h-[76px] flex-row items-center gap-3 px-4 py-3 ${
-        isLast ? '' : 'border-b border-hercules-blue/10'
-      }`}
-    >
-      <View
-        className={`h-10 w-10 shrink-0 rounded-[12px] ${
-          iconTone === 'red'
-            ? 'bg-hercules-red/15'
-            : 'bg-hercules-blue/15'
-        }`}
-      />
-      <View className="min-w-0 flex-1 gap-1">
-        <View>
-          {Array.from({ length: titleLines }, (_, index) => (
-            <View
-              key={`journey-unlock-title-skeleton-${index}`}
-              className="h-5 justify-center"
-            >
-              <SkeletonLine
-                className={`h-4 ${index === 0 ? 'w-4/5' : 'w-3/5'}`}
-              />
-            </View>
-          ))}
-        </View>
-        <View>
-          {Array.from({ length: subtitleLines }, (_, index) => (
-            <View
-              key={`journey-unlock-subtitle-skeleton-${index}`}
-              className="h-5 justify-center"
-            >
-              <SkeletonLine
-                className={`h-3 ${index === 0 ? 'w-3/5' : 'w-2/5'}`}
-                subtle
-              />
-            </View>
-          ))}
-        </View>
-      </View>
-      <View className="shrink-0 flex-row items-center justify-end gap-2">
-        <SkeletonLine
-          className={`h-3 ${metaWidthClassName}`}
-          subtle
-        />
-        <View className="h-6 w-4 items-center justify-center">
-          <SkeletonLine className="h-5 w-4" subtle />
-        </View>
-      </View>
-    </View>
-  );
-}
-
 function benefitIcon(benefit: Benefit) {
   if (benefit.benefitType === 'WARRANTY') {
     return ShieldCheck;
@@ -319,10 +266,4 @@ function benefitIcon(benefit: Benefit) {
     return BadgeDollarSign;
   }
   return Gift;
-}
-
-function openBenefitUrl(benefit: Benefit) {
-  if (benefit.url) {
-    void openExternalUrl(benefit.url);
-  }
 }

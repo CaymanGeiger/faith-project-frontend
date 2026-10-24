@@ -1,10 +1,15 @@
+import { RestrictedSupport } from '../../../features/onboarding/RestrictedSupport';
+import { hasRestrictedAccess } from '../../../features/onboarding/access';
+import { useAuth } from '../../../features/auth/AuthProvider';
 import { router } from 'expo-router';
 import {
   Award,
   BookOpen,
   FileText,
+  Mail,
   MessageCircle,
   PackagePlus,
+  Phone,
   ShieldCheck,
   Smartphone,
 } from 'lucide-react-native';
@@ -16,15 +21,15 @@ import { AsyncContent } from '../../../components/ui/AsyncContent';
 import { ListItem } from '../../../components/ui/ListItem';
 import { ListGroup } from '../../../components/ui/ListGroup';
 import { PageHero } from '../../../components/ui/PageHero';
-import { RelatedLinks } from '../../../components/ui/RelatedLinks';
 import type { RelatedLink } from '../../../components/ui/RelatedLinks';
 import { SectionHeader } from '../../../components/ui/SectionHeader';
 import {
-  SkeletonLine,
+  SkeletonListRow,
   SkeletonSectionHeader,
 } from '../../../components/ui/SkeletonPrimitives';
 import { SkeletonReveal } from '../../../components/ui/SkeletonReveal';
 import { ErrorState } from '../../../components/ui/StateViews';
+import { useInAppContent } from '../../../features/content/InAppContentProvider';
 import { resourcesApi } from '../../../lib/api/endpoints';
 import type { Resource } from '../../../lib/api/types';
 import { useAsyncData } from '../../../lib/hooks/useAsyncData';
@@ -32,34 +37,38 @@ import { openExternalUrl } from '../../../lib/openExternalUrl';
 
 const dealerSupportLinks = [
   {
-    title: 'Warranty Help',
-    description: 'Find warranty resources and JB Warranties guidance.',
-    href: '/prospect/benefits',
-    icon: ShieldCheck,
-    tone: 'red',
-  },
-  {
     title: 'Marketing Resources',
-    description: 'Plan your consultation and find business-growth support.',
+    description: 'Consultations and business-growth support.',
     href: '/prospect/marketing',
     icon: Award,
     tone: 'blue',
   },
   {
-    title: 'Contact Your Hercules Representative',
-    description: 'Start a chat when you need help with Getting Started.',
+    title: 'Chat with Your Representative',
+    description: 'Get help with Getting Started.',
     href: '/prospect/messages',
     icon: MessageCircle,
     tone: 'red',
   },
 ] satisfies RelatedLink[];
 
+const lgWarrantyRegistrationUrl = 'https://lg-dfs-warranty.com/register';
+const equipmentSupportPhoneUrl = 'tel:8443362753';
+const equipmentSupportEmailUrl = 'mailto:equipsupport@hercmail.com';
+const warrantyPartsClaimFormUrl =
+  'https://www.herculesindustries.com/ASSETS/DOCUMENTS/CMS/EN/Warranty/Warranty%20Claim%20Form%202025.pdf';
+
 export default function ProspectResourcesScreen() {
+  const { user } = useAuth();
+  return hasRestrictedAccess(user) ? <RestrictedSupport /> : <FullProspectResourcesScreen />;
+}
+
+function FullProspectResourcesScreen() {
   const resources = useAsyncData(() => resourcesApi.list(), []);
   const resourceList = resources.data?.resources ?? [];
   const registrationResources = resourceList.filter(
     (resource) =>
-      resource.resourceType === 'REGISTRATION_OVERVIEW' ||
+      resource.resourceType !== 'REGISTRATION_OVERVIEW' &&
       /registration/i.test(resource.category),
   );
   const appResources = resourceList.filter(
@@ -85,6 +94,8 @@ export default function ProspectResourcesScreen() {
         subtitle="Find product tools, technical resources, registration help, warranty support, and your Hercules contact."
       />
 
+      <RegisterEquipmentCard resources={registrationResources} />
+
       {resources.error && !resources.data ? (
         <ErrorState message={resources.error} onRetry={resources.reload} />
       ) : (
@@ -95,34 +106,6 @@ export default function ProspectResourcesScreen() {
         >
           {resources.data ? (
             <>
-              <AnimatedCard index={1} className="gap-3">
-                <SectionHeader title="Register Equipment" />
-                <ListGroup>
-                  <ListItem
-                    title="Register Your First LG System"
-                    subtitle="Add your first equipment record and begin using your dealer tools."
-                    icon={PackagePlus}
-                    iconTone="red"
-                    variant="row"
-                    isLast={registrationResources.length === 0}
-                    onPress={() => router.push('/prospect/getting-started')}
-                  />
-                  {registrationResources.map((resource, index) => (
-                    <ListItem
-                      key={resource.id}
-                      title={resource.title}
-                      subtitle={resource.description}
-                      meta="Guide"
-                      icon={FileText}
-                      iconTone="blue"
-                      variant="row"
-                      isLast={index === registrationResources.length - 1}
-                      onPress={() => void openExternalUrl(resource.url)}
-                    />
-                  ))}
-                </ListGroup>
-              </AnimatedCard>
-
               <AnimatedCard index={2} className="gap-3">
                 <SectionHeader title="Technical Manuals & Catalogs" />
                 <ResourceList
@@ -145,18 +128,127 @@ export default function ProspectResourcesScreen() {
                   <ResourceList resources={marketingResources} />
                 </AnimatedCard>
               ) : null}
-
-              <AnimatedCard index={5}>
-                <RelatedLinks
-                  title="More Technical Support"
-                  links={dealerSupportLinks}
-                />
-              </AnimatedCard>
             </>
           ) : null}
         </AsyncContent>
       )}
+
+      <SupportSections />
     </AppScreen>
+  );
+}
+
+function RegisterEquipmentCard({ resources }: { resources: Resource[] }) {
+  const { openContent } = useInAppContent();
+
+  return (
+    <AnimatedCard index={1} className="gap-3">
+      <SectionHeader title="Register Equipment" />
+      <ListGroup>
+        <ListItem
+          title="Register Your First LG System"
+          subtitle="Complete LG warranty registration for your equipment."
+          icon={PackagePlus}
+          iconTone="red"
+          variant="row"
+          isLast={resources.length === 0}
+          onPress={() =>
+            openContent({ url: lgWarrantyRegistrationUrl, title: 'LG Warranty Registration' })
+          }
+        />
+        {resources.map((resource, index) => (
+          <ListItem
+            key={resource.id}
+            title={resource.title}
+            subtitle={resource.description}
+            meta="Guide"
+            icon={FileText}
+            iconTone="blue"
+            variant="row"
+            isLast={index === resources.length - 1}
+            onPress={() => openContent({ url: resource.url, title: resource.title })}
+          />
+        ))}
+      </ListGroup>
+    </AnimatedCard>
+  );
+}
+
+function SupportSections() {
+  const { openContent } = useInAppContent();
+
+  return (
+    <>
+      <AnimatedCard index={5} className="gap-3">
+        <SectionHeader title="Equipment Support" />
+        <ListGroup>
+          <ListItem
+            title="Call Tech Support"
+            subtitle="(844) 336-2753"
+            icon={Phone}
+            iconTone="red"
+            variant="row"
+            onPress={() => void openExternalUrl(equipmentSupportPhoneUrl)}
+          />
+          <ListItem
+            title="Email Tech Support"
+            subtitle="equipsupport@hercmail.com"
+            icon={Mail}
+            iconTone="blue"
+            variant="row"
+            isLast
+            onPress={() => void openExternalUrl(equipmentSupportEmailUrl)}
+          />
+        </ListGroup>
+      </AnimatedCard>
+
+      <AnimatedCard index={6} className="gap-3">
+        <SectionHeader title="Warranty & Claims" />
+        <ListGroup>
+          <ListItem
+            title="Parts Claim Form (PDF)"
+            subtitle="Warranty paperwork for replacement parts."
+            icon={FileText}
+            iconTone="red"
+            variant="row"
+            onPress={() =>
+              openContent({
+                url: warrantyPartsClaimFormUrl,
+                title: 'Warranty Parts Claim Form',
+                kind: 'pdf',
+              })
+            }
+          />
+          <ListItem
+            title="Warranty Help"
+            subtitle="Warranty resources and JB Warranties guidance."
+            icon={ShieldCheck}
+            iconTone="red"
+            variant="row"
+            isLast
+            onPress={() => router.push('/prospect/benefits')}
+          />
+        </ListGroup>
+      </AnimatedCard>
+
+      <AnimatedCard index={7} className="gap-3">
+        <SectionHeader title="Dealer Support" />
+        <ListGroup>
+          {dealerSupportLinks.map((link, index) => (
+            <ListItem
+              key={link.title}
+              title={link.title}
+              subtitle={link.description}
+              icon={link.icon}
+              iconTone={link.tone}
+              variant="row"
+              isLast={index === dealerSupportLinks.length - 1}
+              onPress={() => router.push(link.href)}
+            />
+          ))}
+        </ListGroup>
+      </AnimatedCard>
+    </>
   );
 }
 
@@ -167,41 +259,23 @@ function DealerSupportSkeleton() {
       className="gap-6"
     >
       <View className="gap-3">
-        <SkeletonSectionHeader widthClassName="w-[169px]" />
-        <View className="overflow-hidden rounded-[18px] border border-hercules-blue/15 bg-hercules-white">
-          <DealerSupportSkeletonRow
-            titleLines={1}
-            subtitleLines={2}
-            iconTone="red"
-          />
-          <DealerSupportSkeletonRow
-            titleLines={1}
-            subtitleLines={2}
-            metaWidthClassName="w-[34px]"
-            iconTone="blue"
-            isLast
-          />
-        </View>
-      </View>
-
-      <View className="gap-3">
         <SkeletonSectionHeader widthClassName="w-[256px]" />
-        <View className="overflow-hidden rounded-[18px] border border-hercules-blue/15 bg-hercules-white">
-          <DealerSupportSkeletonRow
-          titleLines={1}
-          subtitleLines={2}
+        <ListGroup>
+          <SkeletonListRow
+            titleLines={1}
+            subtitleLines={2}
             metaWidthClassName="w-[71px]"
             iconTone="red"
             isLast
           />
-        </View>
+        </ListGroup>
       </View>
 
       <View className="gap-3">
         <SkeletonSectionHeader widthClassName="w-[72px]" />
-        <View className="overflow-hidden rounded-[18px] border border-hercules-blue/15 bg-hercules-white">
+        <ListGroup>
           {Array.from({ length: 3 }, (_, index) => (
-            <DealerSupportSkeletonRow
+            <SkeletonListRow
               key={`dealer-app-resource-skeleton-${index}`}
               titleLines={1}
               subtitleLines={2}
@@ -210,115 +284,9 @@ function DealerSupportSkeleton() {
               isLast={index === 2}
             />
           ))}
-        </View>
-      </View>
-
-      <View className="gap-3">
-        <SkeletonSectionHeader widthClassName="w-[178px]" />
-        <View className="gap-3">
-          <DealerSupportSkeletonRow
-            titleLines={1}
-            subtitleLines={2}
-            variant="card"
-            iconTone="red"
-            isLast
-          />
-          <DealerSupportSkeletonRow
-            titleLines={1}
-            subtitleLines={2}
-            variant="card"
-            iconTone="blue"
-            isLast
-          />
-          <DealerSupportSkeletonRow
-            titleLines={2}
-            subtitleLines={2}
-            variant="card"
-            iconTone="red"
-            isLast
-          />
-        </View>
+        </ListGroup>
       </View>
     </SkeletonReveal>
-  );
-}
-
-type DealerSupportSkeletonRowProps = {
-  iconTone: 'red' | 'blue';
-  isLast?: boolean;
-  metaWidthClassName?: string;
-  subtitleLines: 1 | 2;
-  titleLines: 1 | 2;
-  variant?: 'card' | 'row';
-};
-
-function DealerSupportSkeletonRow({
-  iconTone,
-  isLast = false,
-  metaWidthClassName,
-  subtitleLines,
-  titleLines,
-  variant = 'row',
-}: DealerSupportSkeletonRowProps) {
-  const containerClassName =
-    variant === 'card'
-      ? 'min-h-[76px] flex-row items-center gap-3 rounded-[16px] border border-hercules-blue/15 bg-hercules-white px-4 py-3'
-      : `min-h-[76px] flex-row items-center gap-3 px-4 py-3 ${
-          isLast ? '' : 'border-b border-hercules-blue/10'
-        }`;
-
-  return (
-    <View className={containerClassName}>
-      <View
-        className={`h-10 w-10 shrink-0 rounded-[12px] ${
-          iconTone === 'red'
-            ? 'bg-hercules-red/15'
-            : 'bg-hercules-blue/15'
-        }`}
-      />
-      <View className="min-w-0 flex-1 gap-1">
-        <View>
-          {Array.from({ length: titleLines }, (_, index) => (
-            <View
-              key={`dealer-support-title-skeleton-${index}`}
-              className="h-5 justify-center"
-            >
-              <SkeletonLine
-                className={`h-4 ${
-                  index === 0 ? 'w-4/5' : 'w-3/5'
-                }`}
-              />
-            </View>
-          ))}
-        </View>
-        <View>
-          {Array.from({ length: subtitleLines }, (_, index) => (
-            <View
-              key={`dealer-support-subtitle-skeleton-${index}`}
-              className="h-5 justify-center"
-            >
-              <SkeletonLine
-                className={`h-3 ${
-                  index === 0 ? 'w-3/5' : 'w-2/5'
-                }`}
-                subtle
-              />
-            </View>
-          ))}
-        </View>
-      </View>
-      <View className="shrink-0 flex-row items-center justify-end gap-2">
-        {metaWidthClassName ? (
-          <SkeletonLine
-            className={`h-3 ${metaWidthClassName}`}
-            subtle
-          />
-        ) : null}
-        <View className="h-6 w-4 items-center justify-center">
-          <SkeletonLine className="h-5 w-4" subtle />
-        </View>
-      </View>
-    </View>
   );
 }
 
@@ -328,6 +296,8 @@ type ResourceListProps = {
 };
 
 function ResourceList({ resources, emptyMessage }: ResourceListProps) {
+  const { openContent } = useInAppContent();
+
   if (resources.length === 0) {
     return (
       <ListGroup>
@@ -354,7 +324,7 @@ function ResourceList({ resources, emptyMessage }: ResourceListProps) {
           iconTone={index % 2 === 0 ? 'red' : 'blue'}
           variant="row"
           isLast={index === resources.length - 1}
-          onPress={() => void openExternalUrl(resource.url)}
+          onPress={() => openContent({ url: resource.url, title: resource.title })}
         />
       ))}
     </ListGroup>

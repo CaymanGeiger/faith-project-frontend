@@ -1,0 +1,117 @@
+/** Change these tokens to tune motion across this app and future dealer apps.
+ * Feature screens consume shared components; animation engines consume these presets.
+ */
+const duration = { pressIn: 75, micro: 130, subtleEnter: 156, exit: 120, enter: 216, layout: 200 } as const;
+const easing = { enter: [0.16, 1, 0.3, 1], exit: [0.4, 0, 1, 1] } as const;
+export const motionConfig = {
+  feedback: {
+    progress: { idle: 0, active: 1 },
+    opacity: { hidden: 0, visible: 1 },
+    easing,
+    press: {
+      restScale: 1,
+      inDuration: duration.pressIn,
+      outDuration: duration.micro,
+      inEasing: 'exit',
+      outEasing: 'enter',
+    },
+    button: { pressedScale: 0.975, spinnerStopPadding: 20 },
+    loading: { duration: duration.micro, easing: 'enter' },
+    input: { duration: duration.micro, focusEasing: 'enter', blurEasing: 'exit' },
+    navigation: { duration: duration.micro, easing: 'enter', pressedScale: 0.96 },
+    progressBar: { duration: duration.layout, easing: 'enter', percentMultiplier: 100 },
+    skeleton: { delay: 500, duration: duration.exit, easing: 'easeInOut' },
+    launch: {
+      reducedDuration: 1,
+      reducedDelay: 0,
+      statusBarAnimated: true,
+      intro: { duration: 744, easing: 'cubicOut' },
+      accent: { delay: 300, duration: 528, easing: 'cubicOut' },
+      pulse: {
+        delay: 760,
+        duration: 820,
+        easing: 'cubicInOut',
+        repeatCount: -1,
+        reverse: false,
+        reducedValue: 0.5,
+      },
+      exit: { duration: 320, easing: 'cubicInOut', translateY: -5 },
+      logo: { translateY: -27, initialScale: 1, finalScale: 0.98 },
+      details: { translateY: 8 },
+      redAccent: { minOpacity: 0.62, maxOpacity: 1 },
+      blueAccent: { minOpacity: 0.72, maxOpacity: 1 },
+    },
+  },
+  header: {
+    duration: {
+      titleEnter: duration.subtleEnter,
+      titleExit: 140,
+      scrimEnter: 140,
+      scrimExit: 220,
+      quickLinksEnter: duration.subtleEnter,
+      quickLinksExit: 140,
+      notificationsEnter: 288,
+      notificationsExit: 220,
+      control: duration.micro,
+      spinnerRotation: 820,
+    },
+    easing: {
+      enter: easing.enter,
+      exit: easing.exit,
+      notificationsEnter: 'cubicOut',
+      notificationsExit: 'cubicInOut',
+      spinner: 'linear',
+    },
+    quickLinks: { initialScale: 0.98 },
+    notifications: { initialTranslateY: 25 },
+    menuIcon: {
+      hiddenScale: 0.82,
+      rotationDegrees: 12,
+      fadeOutEnd: 0.45,
+      fadeInStart: 0.55,
+    },
+    notificationIcon: {
+      hiddenScale: 0.78,
+      rotationDegrees: 12,
+      crossfadeAt: 0.5,
+    },
+    spinner: {
+      rotationDegrees: 360,
+      repeatCount: -1,
+      reverse: false,
+      showDelay: 140,
+      minimumDuration: 240,
+    },
+  },
+  duration,
+  easing,
+  drawer: {
+    enterDuration: duration.enter,
+    exitDuration: 190,
+    enterDistance: 104,
+    exitViewportRatio: 1,
+    opacityInput: [0, 0.2, 1],
+    opacityOutput: [0, 1, 1],
+  },
+  contentViewer: {
+    enterDuration: 200,
+    exitDuration: 160,
+  },
+  page: { duration: 252, offsetX: 8, offsetY: 6 },
+  card: { duration: 228, stagger: 22, variants: 5, offsetX: 4, offsetY: 7 },
+  native: {
+    modalAnimation: 'none',
+    rootNavigation: 'none',
+    // Page/card reveals handle tab changes; native pushes must not add a slide.
+    tabNavigation: 'none',
+    pageGestures: {
+      gestureEnabled: true,
+      gestureDirection: 'horizontal',
+      fullScreenGestureEnabled: true,
+    },
+    imageTransition: 0,
+    animateFormScroll: true,
+    animateScrollReset: false,
+  },
+  launch: { minimumDuration: 1050 },
+} as const;

@@ -5,48 +5,26 @@ import {
   ReduceMotion,
 } from 'react-native-reanimated';
 
-export const motionDuration = {
-  pressIn: 75,
-  micro: 130,
-  subtleEnter: 156,
-  exit: 120,
-  enter: 216,
-  layout: 200,
-} as const;
+import { motionConfig } from './motionConfig';
+export { motionConfig } from './motionConfig';
 
+export const motionDuration = motionConfig.duration;
 export const motionEasing = {
-  enter: Easing.bezier(0.16, 1, 0.3, 1),
-  exit: Easing.bezier(0.4, 0, 1, 1),
-} as const;
-
-export const authMotion = {
-  forwardIn: new Keyframe({
-    0: {
-      opacity: 0,
-      transform: [{ translateX: 20 }],
-    },
-    100: {
-      opacity: 1,
-      transform: [{ translateX: 0 }],
-      easing: motionEasing.enter,
-    },
-  })
-    .duration(204)
-    .reduceMotion(ReduceMotion.System),
-  backIn: new Keyframe({
-    0: {
-      opacity: 0,
-      transform: [{ translateX: -18 }],
-    },
-    100: {
-      opacity: 1,
-      transform: [{ translateX: 0 }],
-      easing: motionEasing.enter,
-    },
-  })
-    .duration(motionDuration.enter)
-    .reduceMotion(ReduceMotion.System),
-} as const;
+  enter: Easing.bezier(...motionConfig.easing.enter),
+  exit: Easing.bezier(...motionConfig.easing.exit),
+};
+export const drawerMotion = {
+  ...motionConfig.drawer,
+  opacityInput: [...motionConfig.drawer.opacityInput],
+  opacityOutput: [...motionConfig.drawer.opacityOutput],
+  enter: { duration: motionConfig.drawer.enterDuration, easing: motionEasing.enter, reduceMotion: ReduceMotion.System },
+  exit: { duration: motionConfig.drawer.exitDuration, easing: motionEasing.exit, reduceMotion: ReduceMotion.System },
+};
+export const contentViewerMotion = {
+  ...motionConfig.contentViewer,
+  enter: { duration: motionConfig.contentViewer.enterDuration, easing: motionEasing.enter, reduceMotion: ReduceMotion.System },
+  exit: { duration: motionConfig.contentViewer.exitDuration, easing: motionEasing.exit, reduceMotion: ReduceMotion.System },
+};
 
 export const standardLayoutTransition = LinearTransition.duration(
   motionDuration.layout,
@@ -57,7 +35,7 @@ export const standardLayoutTransition = LinearTransition.duration(
 export const pageEnterMotion = new Keyframe({
   0: {
     opacity: 0,
-    transform: [{ translateX: 8 }, { translateY: 6 }],
+    transform: [{ translateX: motionConfig.page.offsetX }, { translateY: motionConfig.page.offsetY }],
   },
   100: {
     opacity: 1,
@@ -65,7 +43,7 @@ export const pageEnterMotion = new Keyframe({
     easing: motionEasing.enter,
   },
 })
-  .duration(252)
+  .duration(motionConfig.page.duration)
   .reduceMotion(ReduceMotion.System);
 
 export const asyncContentRevealMotion = new Keyframe({
@@ -104,11 +82,11 @@ export const asyncFallbackRevealMotion = new Keyframe({
   .duration(motionDuration.subtleEnter)
   .reduceMotion(ReduceMotion.System);
 
-export const cardRevealAnimations = [0, 1, 2, 3, 4].map((index) =>
+export const cardRevealAnimations = Array.from({ length: motionConfig.card.variants }, (_, index) =>
   new Keyframe({
     0: {
       opacity: 0,
-      transform: [{ translateX: 4 }, { translateY: 7 }],
+      transform: [{ translateX: motionConfig.card.offsetX }, { translateY: motionConfig.card.offsetY }],
     },
     100: {
       opacity: 1,
@@ -116,11 +94,11 @@ export const cardRevealAnimations = [0, 1, 2, 3, 4].map((index) =>
       easing: motionEasing.enter,
     },
   })
-    .duration(228)
-    .delay(index * 22)
+    .duration(motionConfig.card.duration)
+    .delay(index * motionConfig.card.stagger)
     .reduceMotion(ReduceMotion.System),
 );
 
 export function cardRevealForIndex(index: number) {
-  return cardRevealAnimations[Math.min(Math.max(index, 0), 4)];
+  return cardRevealAnimations[Math.min(Math.max(index, 0), motionConfig.card.variants - 1)];
 }

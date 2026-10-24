@@ -1,3 +1,5 @@
+import type { OnboardingAccess } from '../../features/onboarding/access';
+
 export type UserRole = 'PROSPECT' | 'SALES_MANAGER';
 
 export type User = {
@@ -10,6 +12,7 @@ export type User = {
   status: 'ACTIVE' | 'INVITED' | 'DISABLED';
   termsAcceptedAt: string | null;
   termsVersion: string | null;
+  onboarding?: OnboardingAccess;
 };
 
 export type AuthResponse = {
@@ -123,7 +126,7 @@ export type LeadRecord = {
 };
 
 export type AssignedProspect = ProspectProfile & {
-  user: User;
+  user: User & { initialTrainingVerifiedAt?: string | null };
 };
 
 export type ConversationParticipant = {

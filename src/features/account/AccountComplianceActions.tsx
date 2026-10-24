@@ -1,6 +1,10 @@
 import { router } from 'expo-router';
-import { Alert, Pressable, Text, View } from 'react-native';
-import { useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { ModalSheet } from '../../components/ui/ModalSheet';
+import { PrimaryButton } from '../../components/ui/PrimaryButton';
+import { SecondaryButton } from '../../components/ui/SecondaryButton';
+import { ErrorState } from '../../components/ui/StateViews';
 import { accountApi } from '../../lib/api/endpoints';
 import { User } from '../../lib/api/types';
 import { clearGettingStartedDraft } from '../getting-started/gettingStarted';
@@ -15,46 +19,56 @@ export function AccountComplianceActions({
   onDeleted,
 }: AccountComplianceActionsProps) {
   const [requestingDeletion, setRequestingDeletion] = useState(false);
+  const [confirmingDeletion, setConfirmingDeletion] = useState(false);
+  const [deletionMessage, setDeletionMessage] = useState<string | null>(null);
+  const [deletionError, setDeletionError] = useState<string | null>(null);
+  const deletionInFlight = useRef(false);
 
   const submitDeletionRequest = async () => {
+    if (deletionInFlight.current || deletionMessage) return;
+    deletionInFlight.current = true;
     setRequestingDeletion(true);
+    setDeletionError(null);
     try {
       const result = await accountApi.requestDeletion();
+      setDeletionMessage(result.message);
       if (user.role === 'PROSPECT') {
-        await clearGettingStartedDraft(user.id);
+        // Local cleanup cannot turn a completed server deletion into a failure.
+        await clearGettingStartedDraft(user.id).catch(() => undefined);
       }
-      Alert.alert('Account deletion', result.message, [
-        {
-          text: 'Done',
-          onPress: () => void onDeleted(),
-        },
-      ]);
     } catch (caught) {
-      Alert.alert(
-        'Unable to submit request',
+      setDeletionError(
         caught instanceof Error
           ? caught.message
           : 'Please try again or use the Account Deletion page.',
       );
     } finally {
+      deletionInFlight.current = false;
       setRequestingDeletion(false);
     }
   };
 
-  const requestDeletion = () => {
-    const detail =
-      user.role === 'PROSPECT'
-        ? 'This will permanently delete your Hercules Honors Rewards account and associated app data.'
-        : 'This will immediately close your access and submit your account for deletion after active dealer accounts are reassigned.';
-    Alert.alert('Delete account?', detail, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Request deletion',
-        style: 'destructive',
-        onPress: () => void submitDeletionRequest(),
-      },
-    ]);
+  const closeDeletion = async () => {
+    if (deletionInFlight.current) return;
+    if (deletionMessage) {
+      deletionInFlight.current = true;
+      setRequestingDeletion(true);
+      try {
+        await onDeleted();
+      } catch {
+        setDeletionError('Your request was received. Please try signing out again.');
+        return;
+      } finally {
+        deletionInFlight.current = false;
+        setRequestingDeletion(false);
+      }
+    }
+    setConfirmingDeletion(false);
   };
+
+  const detail = user.role === 'PROSPECT'
+    ? 'This will close your access and permanently delete your account and associated app data. Imported records may require ownership verification before deletion is complete.'
+    : 'This will immediately close your access and submit your account for deletion after active dealer accounts are reassigned.';
 
   return (
     <View className="gap-3 rounded-[16px] border border-hercules-blue/15 bg-hercules-white p-4">
@@ -95,13 +109,37 @@ export function AccountComplianceActions({
         accessibilityLabel="Request account deletion"
         accessibilityState={{ busy: requestingDeletion }}
         disabled={requestingDeletion}
-        onPress={requestDeletion}
+        onPress={() => {
+          setDeletionError(null);
+          setDeletionMessage(null);
+          setConfirmingDeletion(true);
+        }}
         className="min-h-11 self-start justify-center disabled:opacity-50"
       >
         <Text className="text-sm font-extrabold text-hercules-red">
           {requestingDeletion ? 'Submitting request...' : 'Request account deletion'}
         </Text>
       </Pressable>
+      <ModalSheet
+        visible={confirmingDeletion}
+        title={deletionMessage ? 'Account deletion' : 'Delete account?'}
+        onClose={() => void closeDeletion()}
+      >
+        <View className="gap-4 px-4 pb-4">
+          <Text accessibilityRole={deletionMessage ? 'alert' : undefined} className="text-base leading-6 text-hercules-ink">
+            {deletionMessage ?? detail}
+          </Text>
+          {deletionError ? <ErrorState message={deletionError} /> : null}
+          {deletionMessage ? (
+            <PrimaryButton label="Done" loading={requestingDeletion} onPress={() => void closeDeletion()} />
+          ) : (
+            <>
+              <PrimaryButton label="Request deletion" loading={requestingDeletion} onPress={() => void submitDeletionRequest()} />
+              <SecondaryButton label="Cancel" disabled={requestingDeletion} onPress={() => void closeDeletion()} />
+            </>
+          )}
+        </View>
+      </ModalSheet>
     </View>
   );
 }

@@ -94,7 +94,7 @@ export function MarketingSetupStep({
         {error ? <ErrorState message={error} /> : null}
         <View className="rounded-[18px] border border-hercules-blue/20 bg-hercules-white p-4">
           <Text className="text-sm font-semibold leading-5 text-hercules-muted">
-            Include a date, time, and time zone—for example, “August 12 at
+            Include a date, time, and time zone. For example, “August 12 at
             10:00 AM Mountain.”
           </Text>
         </View>

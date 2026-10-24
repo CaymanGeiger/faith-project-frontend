@@ -1,4 +1,5 @@
 import { apiFetch } from './client';
+import type { OnboardingAccess } from '../../features/onboarding/access';
 import {
   AssignedProspect,
   Benefit,
@@ -41,6 +42,7 @@ export const accountApi = {
     apiFetch<{
       profile: ProspectProfile;
       summary: OnboardingSummary;
+      access: OnboardingAccess;
     }>('/me/onboarding-status'),
 };
 
@@ -56,6 +58,7 @@ export const classesApi = {
 };
 
 export const equipmentApi = {
+  update: (id: string, body: { equipmentName: string; modelNumber: string; serialNumber: string }) => apiFetch<{ equipment: EquipmentRegistration }>(`/me/equipment/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   list: () => apiFetch<{ equipment: EquipmentRegistration[] }>('/me/equipment'),
   create: (body: {
     equipmentName: string;

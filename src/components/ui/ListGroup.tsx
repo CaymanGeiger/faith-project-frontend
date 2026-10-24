@@ -1,9 +1,10 @@
 import { PropsWithChildren } from 'react';
 import { View } from 'react-native';
+import { componentStyles } from '../../lib/theme/componentStyles';
 
 export function ListGroup({ children }: PropsWithChildren) {
   return (
-    <View className="overflow-hidden rounded-[18px] border border-hercules-blue/15 bg-hercules-white">
+    <View className={componentStyles.listItem.group}>
       {children}
     </View>
   );

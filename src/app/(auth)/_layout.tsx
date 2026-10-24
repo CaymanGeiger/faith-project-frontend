@@ -1,3 +1,4 @@
+import { motionConfig } from '../../lib/motionConfig';
 import { Redirect, Slot, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
@@ -23,7 +24,7 @@ export default function AuthLayout() {
 
   useEffect(() => {
     Keyboard.dismiss();
-    scrollRef.current?.scrollTo({ y: 0, animated: false });
+    scrollRef.current?.scrollTo({ y: 0, animated: motionConfig.native.animateScrollReset });
   }, [pathname]);
 
   if (loading) {

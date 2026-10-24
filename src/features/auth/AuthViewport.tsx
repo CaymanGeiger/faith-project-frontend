@@ -1,3 +1,4 @@
+import { motionConfig } from '../../lib/motionConfig';
 import {
   createContext,
   useCallback,
@@ -29,7 +30,7 @@ export function AuthViewportProvider({
   const [brandVisible, setBrandVisible] = useState(true);
   const resetViewport = useCallback(() => {
     Keyboard.dismiss();
-    scrollRef.current?.scrollTo({ y: 0, animated: false });
+    scrollRef.current?.scrollTo({ y: 0, animated: motionConfig.native.animateScrollReset });
   }, [scrollRef]);
   const value = useMemo(
     () => ({ resetViewport, setBrandVisible }),
